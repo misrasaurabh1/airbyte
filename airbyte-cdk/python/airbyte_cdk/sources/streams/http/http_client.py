@@ -3,6 +3,22 @@
 #
 
 import logging
+import urllib
+from typing import Mapping, Optional, Union
+
+import requests
+import requests_cache
+from airbyte_cdk.sources.http_config import MAX_CONNECTION_POOL_SIZE
+from airbyte_cdk.sources.streams.call_rate import APIBudget
+from airbyte_cdk.sources.streams.http.error_handlers import (
+    BackoffStrategy,
+    DefaultBackoffStrategy,
+    ErrorHandler,
+    HttpStatusErrorHandler,
+    JsonErrorMessageParser,
+)
+from requests.auth import AuthBase
+import logging
 import os
 import urllib
 from pathlib import Path
@@ -97,15 +113,15 @@ class HttpClient:
         Remove query parameters from params mapping if they are already encoded in the URL.
         :param url: URL with
         :param params:
-        :return:
+        :return: params with duplicates removed
         """
-        if params is None:
-            params = {}
+        if not params:
+            return {}
+
         query_string = urllib.parse.urlparse(url).query
         query_dict = {k: v[0] for k, v in urllib.parse.parse_qs(query_string).items()}
 
-        duplicate_keys_with_same_value = {k for k in query_dict.keys() if str(params.get(k)) == str(query_dict[k])}
-        return {k: v for k, v in params.items() if k not in duplicate_keys_with_same_value}
+        return {k: v for k, v in params.items() if k not in query_dict or str(query_dict[k]) != str(v)}
 
     def _create_prepared_request(
         self,
@@ -250,3 +266,8 @@ class HttpClient:
         response: requests.Response = self._send_with_retry(request=request, request_kwargs=request_kwargs)
 
         return request, response
+
+    def _request_session(self, use_cache=False):
+        if use_cache:
+            return requests_cache.CachedSession()
+        return requests.Session()
