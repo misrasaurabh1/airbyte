@@ -2,6 +2,12 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from dataclasses import dataclass
+from typing import List, Optional
+
+from airbyte_cdk.destinations.vector_db_based.config import FakeEmbeddingConfigModel
+from airbyte_cdk.models import AirbyteRecordMessage
+from langchain.embeddings.fake import FakeEmbeddings
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -150,7 +156,8 @@ class FakeEmbedder(Embedder):
         return None
 
     def embed_documents(self, documents: List[Document]) -> List[Optional[List[float]]]:
-        return cast(List[Optional[List[float]]], self.embeddings.embed_documents([document.page_content for document in documents]))
+        page_contents = [document.page_content for document in documents]
+        return self.embeddings.embed_documents(page_contents)
 
     @property
     def embedding_dimensions(self) -> int:
