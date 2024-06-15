@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from typing import Any, Dict
 import json
 import logging
 from copy import deepcopy
@@ -352,8 +353,4 @@ class MessageGrouper:
 
     @staticmethod
     def _clean_config(config: Dict[str, Any]) -> Dict[str, Any]:
-        cleaned_config = deepcopy(config)
-        for key in config.keys():
-            if key.startswith("__"):
-                del cleaned_config[key]
-        return cleaned_config
+        return {key: value for key, value in config.items() if not key.startswith("__")}
