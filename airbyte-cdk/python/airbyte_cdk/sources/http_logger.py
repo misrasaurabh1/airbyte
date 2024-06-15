@@ -3,6 +3,7 @@
 #
 
 from typing import Optional, Union
+from typing import Optional, Union
 
 import requests
 from airbyte_cdk.sources.message import LogMessage
@@ -44,4 +45,6 @@ def format_http_message(
 
 
 def _normalize_body_string(body_str: Optional[Union[str, bytes]]) -> Optional[str]:
-    return body_str.decode() if isinstance(body_str, (bytes, bytearray)) else body_str
+    if isinstance(body_str, bytes) or isinstance(body_str, bytearray):
+        return body_str.decode()
+    return body_str
