@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from typing import Any, List, Mapping
 import functools
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Protocol, Tuple
@@ -14,7 +15,10 @@ from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_sta
 
 
 def _extract_value(mapping: Mapping[str, Any], path: List[str]) -> Any:
-    return functools.reduce(lambda a, b: a[b], path, mapping)
+    result = mapping
+    for key in path:
+        result = result[key]
+    return result
 
 
 class GapType(Protocol):
@@ -61,8 +65,7 @@ class CursorField:
 class Cursor(ABC):
     @property
     @abstractmethod
-    def state(self) -> MutableMapping[str, Any]:
-        ...
+    def state(self) -> MutableMapping[str, Any]: ...
 
     @abstractmethod
     def observe(self, record: Record) -> None:
