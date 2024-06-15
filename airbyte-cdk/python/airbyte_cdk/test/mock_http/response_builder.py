@@ -73,6 +73,60 @@ class NestedPath(Path):
     def __str__(self) -> str:
         return f"NestedPath(path={self._path})"
 
+    def __init__(self, path: Union[str, List[str]]):
+        self._path = [path] if isinstance(path, str) else path
+
+    def write(self, template: Dict[str, Any], value: Any) -> None:
+        _write(template, self._path, value)
+
+    def update(self, template: Dict[str, Any], value: Any) -> None:
+        _replace_value(template, self._path, value)
+
+    def extract(self, template: Dict[str, Any]) -> Any:
+        return _extract(self._path, template)
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(path={'/'.join(self._path)})"
+
+    def __init__(self, field: str):
+        super().__init__(field)
+
+    def __init__(self, template: Dict[str, Any], id_path: Optional[Path], cursor_path: Optional[Path]):
+        self._record = template
+        self._id_path = id_path
+        self._cursor_path = cursor_path
+        self._validate_template()
+
+    def _validate_template(self) -> None:
+        for field_name, field_path in [("_id_path", self._id_path), ("_cursor_path", self._cursor_path)]:
+            if field_path:
+                try:
+                    if not field_path.extract(self._record):
+                        raise ValueError(f"{field_name} `{field_path}` was provided but it is not part of the template `{self._record}`")
+                except (IndexError, KeyError) as exception:
+                    raise ValueError(
+                        f"{field_name} `{field_path}` was provided but it is not part of the template `{self._record}`"
+                    ) from exception
+
+    def with_id(self, identifier: Any) -> "RecordBuilder":
+        if not self._id_path:
+            raise ValueError(f"id_path was not provided. Please provide `id_field` while instantiating RecordBuilder.")
+        self._id_path.update(self._record, identifier)
+        return self
+
+    def with_cursor(self, cursor_value: Any) -> "RecordBuilder":
+        if not self._cursor_path:
+            raise ValueError(f"cursor_path was not provided. Please provide `cursor_field` while instantiating RecordBuilder.")
+        self._cursor_path.update(self._record, cursor_value)
+        return self
+
+    def with_field(self, path: Path, value: Any) -> "RecordBuilder":
+        path.write(self._record, value)
+        return self
+
+    def build(self) -> Dict[str, Any]:
+        return self._record
+
 
 class PaginationStrategy(ABC):
     @abstractmethod
@@ -184,10 +238,7 @@ def find_template(resource: str, execution_folder: str) -> Dict[str, Any]:
 
 
 def create_record_builder(
-    response_template: Dict[str, Any],
-    records_path: Union[FieldPath, NestedPath],
-    record_id_path: Optional[Path] = None,
-    record_cursor_path: Optional[Union[FieldPath, NestedPath]] = None,
+    response_template: Dict[str, Any], records_path: Path, record_id_path: Optional[Path] = None, record_cursor_path: Optional[Path] = None
 ) -> RecordBuilder:
     """
     This will use the first record define at `records_path` as a template for the records. If more records are defined, they will be ignored
