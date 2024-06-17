@@ -24,7 +24,8 @@ class StreamAvailability(ABC):
 
 
 class StreamAvailable(StreamAvailability):
-    def is_available(self) -> bool:
+    @staticmethod
+    def is_available() -> bool:
         return True
 
     def message(self) -> Optional[str]:
