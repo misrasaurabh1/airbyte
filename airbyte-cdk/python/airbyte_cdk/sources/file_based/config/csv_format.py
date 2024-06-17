@@ -31,7 +31,8 @@ class CsvHeaderFromCsv(BaseModel):
         const=True,
     )
 
-    def has_header_row(self) -> bool:
+    @staticmethod
+    def has_header_row() -> bool:
         return True
 
 
