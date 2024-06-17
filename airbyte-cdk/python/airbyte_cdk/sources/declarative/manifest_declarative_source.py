@@ -21,7 +21,8 @@ from airbyte_cdk.models import (
 from airbyte_cdk.sources.declarative.checks.connection_checker import ConnectionChecker
 from airbyte_cdk.sources.declarative.declarative_source import DeclarativeSource
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import CheckStream as CheckStreamModel
-from airbyte_cdk.sources.declarative.models.declarative_component_schema import DeclarativeStream as DeclarativeStreamModel
+from airbyte_cdk.sources.declarative.models.declarative_component_schema import \
+    DeclarativeStream as DeclarativeStreamModel
 from airbyte_cdk.sources.declarative.models.declarative_component_schema import Spec as SpecModel
 from airbyte_cdk.sources.declarative.parsers.manifest_component_transformer import ManifestComponentTransformer
 from airbyte_cdk.sources.declarative.parsers.manifest_reference_resolver import ManifestReferenceResolver
@@ -32,7 +33,6 @@ from airbyte_cdk.sources.types import ConnectionDefinition
 from airbyte_cdk.sources.utils.slice_logger import AlwaysLogSliceLogger, DebugSliceLogger, SliceLogger
 from jsonschema.exceptions import ValidationError
 from jsonschema.validators import validate
-from functools import lru_cache
 
 
 class ManifestDeclarativeSource(DeclarativeSource):
@@ -218,7 +218,6 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
 
     @staticmethod
-    @lru_cache(maxsize=None)
     def _get_version_parts(version: str, version_type: str) -> Tuple[int, int, int]:
         """
         Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions.
