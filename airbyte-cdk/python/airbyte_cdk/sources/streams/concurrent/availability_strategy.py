@@ -27,7 +27,8 @@ class StreamAvailable(StreamAvailability):
     def is_available(self) -> bool:
         return True
 
-    def message(self) -> Optional[str]:
+    @staticmethod
+    def message() -> Optional[str]:
         return None
 
 
