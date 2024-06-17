@@ -281,12 +281,11 @@ def _is_private_url(hostname: str, port: int) -> bool:
     Helper method that checks if any of the IP addresses associated with a hostname belong to a private network.
     """
     address_info_entries = socket.getaddrinfo(hostname, port)
+    ip_address_method = ipaddress.ip_address
+
     for entry in address_info_entries:
-        # getaddrinfo() returns entries in the form of a 5-tuple where the IP is stored as the sockaddr. For IPv4 this
-        # is a 2-tuple and for IPv6 it is a 4-tuple, but the address is always the first value of the tuple at 0.
-        # See https://docs.python.org/3/library/socket.html#socket.getaddrinfo for more details.
         ip_address = entry[4][0]
-        if ipaddress.ip_address(ip_address).is_private:
+        if ip_address_method(ip_address).is_private:
             return True
     return False
 
