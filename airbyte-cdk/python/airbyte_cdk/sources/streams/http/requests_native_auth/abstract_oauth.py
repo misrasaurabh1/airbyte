@@ -57,11 +57,10 @@ class AbstractOauth2Authenticator(AuthBase):
 
     def get_access_token(self) -> str:
         """Returns the access token"""
-        if self.token_has_expired():
+        if self.access_token is None or self.token_has_expired():
             token, expires_in = self.refresh_access_token()
             self.access_token = token
             self.set_token_expiry_date(expires_in)
-
         return self.access_token
 
     def token_has_expired(self) -> bool:
@@ -256,3 +255,41 @@ class AbstractOauth2Authenticator(AuthBase):
                     is_auxiliary=True,
                 ),
             )
+
+    def get_access_token(self) -> str:
+        """Returns the access token"""
+        if self.access_token is None or self.token_has_expired():
+            token, expires_in = self.refresh_access_token()
+            self.access_token = token
+            self.set_token_expiry_date(expires_in)
+        return self.access_token
+
+    # Assuming these methods are already defined
+    def token_has_expired(self) -> bool:
+        # Logic to check if the token is expired
+        pass
+
+    def refresh_access_token(self) -> Tuple[str, int]:
+        # Logic to refresh the access token
+        pass
+
+    def set_token_expiry_date(self, expires_in: int) -> None:
+        # Logic to set the token expiry date
+        pass
+
+    def get_auth_header(self) -> Mapping[str, Any]:
+        """HTTP header to set on the requests"""
+        return {"Authorization": f"Bearer {self.get_access_token()}"}
+
+    # Assuming these methods are already defined
+    def token_has_expired(self) -> bool:
+        # Logic to check if the token is expired
+        pass
+
+    def refresh_access_token(self) -> Tuple[str, int]:
+        # Logic to refresh the access token
+        pass
+
+    def set_token_expiry_date(self, expires_in: int) -> None:
+        # Logic to set the token expiry date
+        pass
