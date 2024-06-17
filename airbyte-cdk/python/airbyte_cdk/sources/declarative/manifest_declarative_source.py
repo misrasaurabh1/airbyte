@@ -32,6 +32,7 @@ from airbyte_cdk.sources.types import ConnectionDefinition
 from airbyte_cdk.sources.utils.slice_logger import AlwaysLogSliceLogger, DebugSliceLogger, SliceLogger
 from jsonschema.exceptions import ValidationError
 from jsonschema.validators import validate
+from functools import lru_cache
 
 
 class ManifestDeclarativeSource(DeclarativeSource):
@@ -217,14 +218,15 @@ class ManifestDeclarativeSource(DeclarativeSource):
             )
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def _get_version_parts(version: str, version_type: str) -> Tuple[int, int, int]:
         """
         Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions.
         """
         version_parts = re.split(r"\.", version)
-        if len(version_parts) != 3 or not all([part.isdigit() for part in version_parts]):
+        if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):
             raise ValidationError(f"The {version_type} version {version} specified is not a valid version format (ex. 1.2.3)")
-        return tuple(int(part) for part in version_parts)  # type: ignore # We already verified there were 3 parts and they are all digits
+        return tuple(map(int, version_parts))  # type: ignore # We already verified there were 3 parts and they are all digits
 
     def _stream_configs(self, manifest: Mapping[str, Any]) -> List[Dict[str, Any]]:
         # This has a warning flag for static, but after we finish part 4 we'll replace manifest with self._source_config
