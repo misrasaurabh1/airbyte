@@ -2,8 +2,6 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
-from abc import ABC
-from typing import List, Set
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
