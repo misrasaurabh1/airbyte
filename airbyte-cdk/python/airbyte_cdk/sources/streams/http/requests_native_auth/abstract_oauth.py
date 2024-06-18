@@ -2,16 +2,6 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
-from abc import abstractmethod
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
-
-import requests
-from requests.auth import AuthBase
-from abc import abstractmethod
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
-
-import requests
-from requests.auth import AuthBase
 import logging
 from abc import abstractmethod
 from json import JSONDecodeError
@@ -201,22 +191,18 @@ class AbstractOauth2Authenticator(AuthBase):
     @abstractmethod
     def get_client_id(self) -> str:
         """The client id to authenticate"""
-        pass
 
     @abstractmethod
     def get_client_secret(self) -> str:
         """The client secret to authenticate"""
-        pass
 
     @abstractmethod
     def get_refresh_token(self) -> Optional[str]:
         """The token used to refresh the access token when it expires"""
-        pass
 
     @abstractmethod
     def get_scopes(self) -> List[str]:
         """List of requested scopes"""
-        pass
 
     @abstractmethod
     def get_token_expiry_date(self) -> pendulum.DateTime:
@@ -237,12 +223,10 @@ class AbstractOauth2Authenticator(AuthBase):
     @abstractmethod
     def get_refresh_request_body(self) -> Mapping[str, Any]:
         """Returns the request body to set on the refresh request"""
-        pass
 
     @abstractmethod
     def get_grant_type(self) -> str:
         """Returns grant_type specified for requesting access_token"""
-        pass
 
     @property
     @abstractmethod
@@ -273,333 +257,3 @@ class AbstractOauth2Authenticator(AuthBase):
                     is_auxiliary=True,
                 ),
             )
-
-    @abstractmethod
-    def get_grant_type(self) -> str:
-        """Returns grant_type specified for requesting access_token"""
-        pass
-
-    @abstractmethod
-    def get_client_id(self) -> str:
-        """The client id to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_client_secret(self) -> str:
-        """The client secret to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_refresh_token(self) -> Optional[str]:
-        """The token used to refresh the access token when it expires"""
-        pass
-
-    @abstractmethod
-    def get_scopes(self) -> List[str]:
-        """List of requested scopes"""
-        pass
-
-    @abstractmethod
-    def get_refresh_request_body(self) -> Mapping[str, Any]:
-        """Returns the request body to set on the refresh request"""
-        pass
-
-    def build_refresh_request_body(self) -> Mapping[str, Any]:
-        """
-        Returns the request body to set on the refresh request
-
-        Override to define additional parameters
-        """
-        payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
-        }
-
-        scopes = self.get_scopes()
-        if scopes:
-            payload["scopes"] = scopes
-
-        refresh_request_body = self.get_refresh_request_body()
-        if refresh_request_body:
-            for key, val in refresh_request_body.items():
-                if key not in payload:
-                    payload[key] = val
-
-        return payload
-
-    @abstractmethod
-    def get_client_id(self) -> str:
-        """The client id to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_client_secret(self) -> str:
-        """The client secret to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_refresh_token(self) -> Optional[str]:
-        """The token used to refresh the access token when it expires"""
-        pass
-
-    @abstractmethod
-    def get_scopes(self) -> List[str]:
-        """List of requested scopes"""
-        pass
-
-    @abstractmethod
-    def get_refresh_request_body(self) -> Mapping[str, Any]:
-        """Returns the request body to set on the refresh request"""
-        pass
-
-    def build_refresh_request_body(self) -> Mapping[str, Any]:
-        """
-        Returns the request body to set on the refresh request
-
-        Override to define additional parameters
-        """
-        payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
-        }
-
-        scopes = self.get_scopes()
-        if scopes:
-            payload["scopes"] = scopes
-
-        refresh_request_body = self.get_refresh_request_body()
-        if refresh_request_body:
-            for key, val in refresh_request_body.items():
-                if key not in payload:
-                    payload[key] = val
-
-        return payload
-
-    @abstractmethod
-    def get_grant_type(self) -> str:
-        """Returns grant_type specified for requesting access_token"""
-        pass
-
-    @abstractmethod
-    def get_client_id(self) -> str:
-        """The client id to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_client_secret(self) -> str:
-        """The client secret to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_refresh_token(self) -> Optional[str]:
-        """The token used to refresh the access token when it expires"""
-        pass
-
-    @abstractmethod
-    def get_scopes(self) -> List[str]:
-        """List of requested scopes"""
-        pass
-
-    def build_refresh_request_body(self) -> Mapping[str, Any]:
-        """
-        Returns the request body to set on the refresh request
-
-        Override to define additional parameters
-        """
-        payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
-        }
-
-        scopes = self.get_scopes()
-        if scopes:
-            payload["scopes"] = scopes
-
-        refresh_request_body = self.get_refresh_request_body()
-        if refresh_request_body:
-            for key, val in refresh_request_body.items():
-                if key not in payload:
-                    payload[key] = val
-
-        return payload
-
-    @abstractmethod
-    def get_grant_type(self) -> str:
-        """Returns grant_type specified for requesting access_token"""
-        pass
-
-    @abstractmethod
-    def get_client_id(self) -> str:
-        """The client id to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_client_secret(self) -> str:
-        """The client secret to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_scopes(self) -> List[str]:
-        """List of requested scopes"""
-        pass
-
-    @abstractmethod
-    def get_refresh_request_body(self) -> Mapping[str, Any]:
-        """Returns the request body to set on the refresh request"""
-        pass
-
-    def build_refresh_request_body(self) -> Mapping[str, Any]:
-        """
-        Returns the request body to set on the refresh request
-
-        Override to define additional parameters
-        """
-        payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
-        }
-
-        scopes = self.get_scopes()
-        if scopes:
-            payload["scopes"] = scopes
-
-        refresh_request_body = self.get_refresh_request_body()
-        if refresh_request_body:
-            for key, val in refresh_request_body.items():
-                if key not in payload:
-                    payload[key] = val
-
-        return payload
-
-    @abstractmethod
-    def get_grant_type(self) -> str:
-        """Returns grant_type specified for requesting access_token"""
-        pass
-
-    @abstractmethod
-    def get_client_secret(self) -> str:
-        """The client secret to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_refresh_token(self) -> Optional[str]:
-        """The token used to refresh the access token when it expires"""
-        pass
-
-    @abstractmethod
-    def get_scopes(self) -> List[str]:
-        """List of requested scopes"""
-        pass
-
-    @abstractmethod
-    def get_refresh_request_body(self) -> Mapping[str, Any]:
-        """Returns the request body to set on the refresh request"""
-        pass
-
-    def build_refresh_request_body(self) -> Mapping[str, Any]:
-        """
-        Returns the request body to set on the refresh request
-
-        Override to define additional parameters
-        """
-        payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
-        }
-
-        scopes = self.get_scopes()
-        if scopes:
-            payload["scopes"] = scopes
-
-        refresh_request_body = self.get_refresh_request_body()
-        if refresh_request_body:
-            for key, val in refresh_request_body.items():
-                if key not in payload:
-                    payload[key] = val
-
-        return payload
-
-    @abstractmethod
-    def get_grant_type(self) -> str:
-        """Returns grant_type specified for requesting access_token"""
-        pass
-
-    @abstractmethod
-    def get_client_id(self) -> str:
-        """The client id to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_client_secret(self) -> str:
-        """The client secret to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_refresh_token(self) -> Optional[str]:
-        """The token used to refresh the access token when it expires"""
-        pass
-
-    @abstractmethod
-    def get_refresh_request_body(self) -> Mapping[str, Any]:
-        """Returns the request body to set on the refresh request"""
-        pass
-
-    def build_refresh_request_body(self) -> Mapping[str, Any]:
-        """
-        Returns the request body to set on the refresh request
-
-        Override to define additional parameters
-        """
-        payload: MutableMapping[str, Any] = {
-            "grant_type": self.get_grant_type(),
-            "client_id": self.get_client_id(),
-            "client_secret": self.get_client_secret(),
-            "refresh_token": self.get_refresh_token(),
-        }
-
-        scopes = self.get_scopes()
-        if scopes:
-            payload["scopes"] = scopes
-
-        refresh_request_body = self.get_refresh_request_body()
-        if refresh_request_body:
-            for key, val in refresh_request_body.items():
-                if key not in payload:
-                    payload[key] = val
-
-        return payload
-
-    @abstractmethod
-    def get_grant_type(self) -> str:
-        """Returns grant_type specified for requesting access_token"""
-        pass
-
-    @abstractmethod
-    def get_client_id(self) -> str:
-        """The client id to authenticate"""
-        pass
-
-    @abstractmethod
-    def get_refresh_token(self) -> Optional[str]:
-        """The token used to refresh the access token when it expires"""
-        pass
-
-    @abstractmethod
-    def get_scopes(self) -> List[str]:
-        """List of requested scopes"""
-        pass
-
-    @abstractmethod
-    def get_refresh_request_body(self) -> Mapping[str, Any]:
-        """Returns the request body to set on the refresh request"""
-        pass
