@@ -1,8 +1,6 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-from typing import Any, List, Mapping
-import functools
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Protocol, Tuple
 
@@ -11,7 +9,8 @@ from airbyte_cdk.sources.message import MessageRepository
 from airbyte_cdk.sources.streams import NO_CURSOR_STATE_KEY
 from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partition
 from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
-from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import AbstractStreamStateConverter
+from airbyte_cdk.sources.streams.concurrent.state_converters.abstract_stream_state_converter import \
+    AbstractStreamStateConverter
 
 
 def _extract_value(mapping: Mapping[str, Any], path: List[str]) -> Any:
@@ -65,7 +64,8 @@ class CursorField:
 class Cursor(ABC):
     @property
     @abstractmethod
-    def state(self) -> MutableMapping[str, Any]: ...
+    def state(self) -> MutableMapping[str, Any]:
+        ...
 
     @abstractmethod
     def observe(self, record: Record) -> None:
