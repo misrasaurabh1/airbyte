@@ -103,5 +103,9 @@ class AbstractFileBasedStreamReader(ABC):
         """
         Utility method for extracting prefixes from the globs.
         """
-        prefixes = {glob.split("*")[0] for glob in globs}
-        return set(filter(lambda x: bool(x), prefixes))
+        prefixes = set()
+        for glob in globs:
+            prefix = glob.split("*")[0]
+            if prefix:
+                prefixes.add(prefix)
+        return prefixes
