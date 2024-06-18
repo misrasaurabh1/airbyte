@@ -88,6 +88,7 @@ class AbstractOauth2Authenticator(AuthBase):
         refresh_request_body = self.get_refresh_request_body()
         if refresh_request_body:
             for key, val in refresh_request_body.items():
+                # We defer to existing oauth constructs over custom configured fields
                 if key not in payload:
                     payload[key] = val
 
