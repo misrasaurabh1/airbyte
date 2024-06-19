@@ -18,8 +18,9 @@ class AbstractHeaderAuthenticator(AuthBase):
 
     def get_auth_header(self) -> Mapping[str, Any]:
         """The header to set on outgoing HTTP requests"""
-        if self.auth_header:
-            return {self.auth_header: self.token}
+        auth_header = self.auth_header
+        if auth_header:
+            return {auth_header: self.token}
         return {}
 
     @property
@@ -31,3 +32,37 @@ class AbstractHeaderAuthenticator(AuthBase):
     @abstractmethod
     def token(self) -> str:
         """The header value to set on outgoing HTTP requests"""
+
+    @property
+    @abstractmethod
+    def auth_header(self) -> str:
+        """HTTP header to set on the requests"""
+
+    @property
+    @abstractmethod
+    def token(self) -> str:
+        """The header value to set on outgoing HTTP requests"""
+
+    def get_auth_header(self) -> Mapping[str, Any]:
+        """The header to set on outgoing HTTP requests"""
+        auth_header = self.auth_header
+        if auth_header:
+            return {auth_header: self.token}
+        return {}
+
+    @property
+    @abstractmethod
+    def token(self) -> str:
+        """The header value to set on outgoing HTTP requests"""
+
+    def get_auth_header(self) -> Mapping[str, Any]:
+        """The header to set on outgoing HTTP requests"""
+        auth_header = self.auth_header
+        if auth_header:
+            return {auth_header: self.token}
+        return {}
+
+    @property
+    @abstractmethod
+    def auth_header(self) -> str:
+        """HTTP header to set on the requests"""
