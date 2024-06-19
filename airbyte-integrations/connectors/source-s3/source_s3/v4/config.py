@@ -64,7 +64,7 @@ class Config(AbstractFileBasedSpec):
     )
 
     @root_validator
-    def validate_optional_args(cls, values):
+    def validate_optional_args(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         aws_access_key_id = values.get("aws_access_key_id")
         aws_secret_access_key = values.get("aws_secret_access_key")
         if (aws_access_key_id or aws_secret_access_key) and not (aws_access_key_id and aws_secret_access_key):
@@ -74,9 +74,8 @@ class Config(AbstractFileBasedSpec):
 
         if is_cloud_environment():
             endpoint = values.get("endpoint")
-            if endpoint:
-                if endpoint.startswith("http://"):  # ignore-https-check
-                    raise ValidationError("The endpoint must be a secure HTTPS endpoint.", model=Config)
+            if endpoint and endpoint.startswith("http://"):  # ignore-https-check
+                raise ValidationError("The endpoint must be a secure HTTPS endpoint.", model=Config)
 
         return values
 
@@ -90,5 +89,23 @@ class Config(AbstractFileBasedSpec):
         # Hide API processing option until https://github.com/airbytehq/airbyte-platform-internal/issues/10354 is fixed
         processing_options = dpath.util.get(schema, "properties/streams/items/properties/format/oneOf/4/properties/processing/oneOf")
         dpath.util.set(schema, "properties/streams/items/properties/format/oneOf/4/properties/processing/oneOf", processing_options[:1])
+
+        return schema
+
+    @classmethod
+    def documentation_url(cls) -> AnyUrl:
+        return AnyUrl("https://docs.airbyte.com/integrations/sources/s3", scheme="https")
+
+    @classmethod
+    def schema(cls, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        """
+        Generates the mapping comprised of the config fields
+        """
+        schema = super().schema(*args, **kwargs)
+
+        # Hide API processing option until https://github.com/airbytehq/airbyte-platform-internal/issues/10354 is fixed
+        processing_path = "properties/streams/items/properties/format/oneOf/4/properties/processing/oneOf"
+        processing_options = dpath.util.get(schema, processing_path)
+        dpath.util.set(schema, processing_path, processing_options[:1])
 
         return schema
