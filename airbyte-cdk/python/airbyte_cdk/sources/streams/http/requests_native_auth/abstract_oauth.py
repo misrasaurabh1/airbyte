@@ -66,7 +66,8 @@ class AbstractOauth2Authenticator(AuthBase):
 
     def token_has_expired(self) -> bool:
         """Returns True if the token is expired"""
-        return pendulum.now() > self.get_token_expiry_date()  # type: ignore # this is always a bool despite what mypy thinks
+        now = pendulum.now()
+        return now > self.get_token_expiry_date()
 
     def build_refresh_request_body(self) -> Mapping[str, Any]:
         """
@@ -256,3 +257,12 @@ class AbstractOauth2Authenticator(AuthBase):
                     is_auxiliary=True,
                 ),
             )
+
+    @abstractmethod
+    def get_token_expiry_date(self) -> pendulum.DateTime:
+        """Expiration date of the access token"""
+
+    def token_has_expired(self) -> bool:
+        """Returns True if the token is expired"""
+        now = pendulum.now()
+        return now > self.get_token_expiry_date()
