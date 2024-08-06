@@ -9,8 +9,9 @@ import dpath
 
 def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
     paths = []
+    path = []
 
-    def traverse_schema(schema_item: Any, path: List[str]) -> None:
+    def traverse_schema(schema_item: Any) -> None:
         """
         schema_item can be any property or value in the originally input jsonschema, depending on how far down the recursion stack we go
         path is the path to that schema item in the original input
@@ -22,17 +23,19 @@ def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
         schema_item=True, path=['password', 'airbyte_secret']
         """
         if isinstance(schema_item, dict):
+            if "airbyte_secret" in schema_item and schema_item["airbyte_secret"] is True:
+                filtered_path = [p for p in path if p not in {"properties", "oneOf"}]
+                paths.append(filtered_path)
+                return  # No need to traverse further as we found a secret
             for k, v in schema_item.items():
-                traverse_schema(v, [*path, k])
+                path.append(k)
+                traverse_schema(v)
+                path.pop()
         elif isinstance(schema_item, list):
             for i in schema_item:
-                traverse_schema(i, path)
-        else:
-            if path[-1] == "airbyte_secret" and schema_item is True:
-                filtered_path = [p for p in path[:-1] if p not in ["properties", "oneOf"]]
-                paths.append(filtered_path)
+                traverse_schema(i)
 
-    traverse_schema(spec, [])
+    traverse_schema(spec)
     return paths
 
 
