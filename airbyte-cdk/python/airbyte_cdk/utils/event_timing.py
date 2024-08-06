@@ -48,8 +48,12 @@ class EventTimer:
         """
         :param order_by: 'name' or 'duration'
         """
-        key_func = attrgetter(order_by)
-        events = sorted(self.events.values(), key=key_func)
+        if order_by == "name":
+            events = sorted(self.events.values(), key=lambda event: event.name)
+        elif order_by == "duration":
+            events = sorted(self.events.values(), key=lambda event: event.duration)
+        else:
+            raise ValueError("order_by must be 'name' or 'duration'")
 
         events_str = "\n".join(map(str, events))
         return f"{self.name} runtimes:\n{events_str}"
