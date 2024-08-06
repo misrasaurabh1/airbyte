@@ -9,8 +9,9 @@ import dpath
 
 def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
     paths = []
+    path = []
 
-    def traverse_schema(schema_item: Any, path: List[str]) -> None:
+    def traverse_schema(schema_item: Any) -> None:
         """
         schema_item can be any property or value in the originally input jsonschema, depending on how far down the recursion stack we go
         path is the path to that schema item in the original input
@@ -23,33 +24,34 @@ def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
         """
         if isinstance(schema_item, dict):
             for k, v in schema_item.items():
-                traverse_schema(v, [*path, k])
+                path.append(k)
+                traverse_schema(v)
+                path.pop()
         elif isinstance(schema_item, list):
             for i in schema_item:
-                traverse_schema(i, path)
-        else:
-            if path[-1] == "airbyte_secret" and schema_item is True:
-                filtered_path = [p for p in path[:-1] if p not in ["properties", "oneOf"]]
-                paths.append(filtered_path)
+                traverse_schema(i)
+        elif path and path[-1] == "airbyte_secret" and schema_item is True:
+            filtered_path = [p for p in path[:-1] if p not in ["properties", "oneOf"]]
+            paths.append(filtered_path)
 
-    traverse_schema(spec, [])
+    traverse_schema(spec)
     return paths
 
 
 def get_secrets(connection_specification: Mapping[str, Any], config: Mapping[str, Any]) -> List[Any]:
     """
-    Get a list of secret values from the source config based on the source specification
-    :type connection_specification: the connection_specification field of an AirbyteSpecification i.e the JSONSchema definition
+    Get a list of secret values from the source config based on the source specification.
+    :type connection_specification: the connection_specification field of an AirbyteSpecification i.e the JSONSchema definition.
     """
     secret_paths = get_secret_paths(connection_specification.get("properties", {}))
     result = []
     for path in secret_paths:
         try:
-            result.append(dpath.get(config, path))
+            result.append(get_value_at_path(config, path))
         except KeyError:
-            # Since we try to get paths to all known secrets in the spec, in the case of oneOfs, some secret fields may not be present
-            # In that case, a KeyError is thrown. This is expected behavior.
-            pass
+            # Since we try to get paths to all known secrets in the spec, in the case of oneOfs,
+            # some secret fields may not be present. This is expected behavior.
+            continue
     return result
 
 
@@ -76,3 +78,12 @@ def filter_secrets(string: str) -> str:
         if secret:
             string = string.replace(str(secret), "****")
     return string
+
+
+def get_value_at_path(data: Mapping[str, Any], path: List[str]) -> Any:
+    for key in path:
+        if key in data:
+            data = data[key]
+        else:
+            raise KeyError
+    return data
