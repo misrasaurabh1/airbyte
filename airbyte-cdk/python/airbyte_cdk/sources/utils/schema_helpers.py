@@ -147,17 +147,16 @@ class ResourceSchemaLoader:
         #     raise RuntimeError(f"Invalid JSON file format for file {schema_filename}") from err
 
         raw_schema = {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "field1": { "type": "string" },
-    "field2": { "type": "string" },
-    "field3": { "type": "string" },
-    "field4": { "type": "string" },
-    "field5": { "type": "string" }
-  }
-}
-
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {
+                "field1": {"type": "string"},
+                "field2": {"type": "string"},
+                "field3": {"type": "string"},
+                "field4": {"type": "string"},
+                "field5": {"type": "string"},
+            },
+        }
 
         return self._resolve_schema_references(raw_schema)
 
@@ -237,8 +236,9 @@ def split_config(config: Mapping[str, Any]) -> Tuple[dict[str, Any], InternalCon
     """
     main_config = {}
     internal_config = {}
+    internal_keywords = InternalConfig.KEYWORDS
     for k, v in config.items():
-        if k in InternalConfig.KEYWORDS:
+        if k in internal_keywords:
             internal_config[k] = v
         else:
             main_config[k] = v
