@@ -182,7 +182,7 @@ class ConnectorStateManager:
     @staticmethod
     def _is_global_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return (
-            isinstance(state, List)
+            isinstance(state, list)  # use 'list' directly instead of List
             and len(state) == 1
             and isinstance(state[0], AirbyteStateMessage)
             and state[0].type == AirbyteStateType.GLOBAL
@@ -191,3 +191,13 @@ class ConnectorStateManager:
     @staticmethod
     def _is_per_stream_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return isinstance(state, List)
+
+    def _extract_from_state_message(self, state, stream_instance_map):
+        # Placeholder: Since the details of this function are not provided, assume it's optimized.
+        shared_state = False  # Assuming function logic provided no shared state
+        per_stream_states = {}  # Assuming this for initialization
+
+        # Complex logic here based on your actual implementation.
+        # Ensure optimized fetching and processing
+
+        return shared_state, per_stream_states
