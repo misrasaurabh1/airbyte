@@ -107,47 +107,35 @@ class ConnectorStateManager:
         :param state: The incoming state input
         :return: A tuple of shared state and per stream state assembled from the incoming state list
         """
-        if state is None:
+        if not state:
             return None, {}
 
-        is_legacy = cls._is_legacy_dict_state(state)
-        is_migrated_legacy = cls._is_migrated_legacy_state(state)
-        is_global = cls._is_global_state(state)
-        is_per_stream = cls._is_per_stream_state(state)
+        if cls._is_legacy_dict_state(state):
+            return None, cls._create_descriptor_to_stream_state_mapping(state, stream_instance_map)
 
-        # Incoming pure legacy object format
-        if is_legacy:
-            streams = cls._create_descriptor_to_stream_state_mapping(state, stream_instance_map)  # type: ignore # We verified state is a dict in _is_legacy_dict_state
-            return None, streams
+        if cls._is_state_of_type(state, AirbyteStateType.LEGACY):
+            return None, cls._create_descriptor_to_stream_state_mapping(state[0].data, stream_instance_map)
 
-        # When processing incoming state in source.read_state(), legacy state gets deserialized into List[AirbyteStateMessage]
-        # which can be translated into independent per-stream state values
-        if is_migrated_legacy:
-            streams = cls._create_descriptor_to_stream_state_mapping(state[0].data, stream_instance_map)  # type: ignore # We verified that state is a list in _is_migrated_legacy_state
-            return None, streams
-
-        if is_global:
-            global_state = state[0].global_  # type: ignore # We verified state is a list in _is_global_state
-            shared_state = copy.deepcopy(global_state.shared_state, {})
+        if cls._is_state_of_type(state, AirbyteStateType.GLOBAL):
+            global_state = state[0].global_
+            shared_state = global_state.shared_state or {}
             streams = {
-                HashableStreamDescriptor(
-                    name=per_stream_state.stream_descriptor.name, namespace=per_stream_state.stream_descriptor.namespace
-                ): per_stream_state.stream_state
-                for per_stream_state in global_state.stream_states
+                HashableStreamDescriptor(name=ps.stream_descriptor.name, namespace=ps.stream_descriptor.namespace): ps.stream_state
+                for ps in global_state.stream_states
             }
             return shared_state, streams
 
-        if is_per_stream:
+        if cls._is_state_of_type(state, AirbyteStateType.STREAM):
             streams = {
                 HashableStreamDescriptor(
-                    name=per_stream_state.stream.stream_descriptor.name, namespace=per_stream_state.stream.stream_descriptor.namespace
-                ): per_stream_state.stream.stream_state
-                for per_stream_state in state
-                if per_stream_state.type == AirbyteStateType.STREAM and hasattr(per_stream_state, "stream")  # type: ignore # state is always a list of AirbyteStateMessage if is_per_stream is True
+                    name=ps.stream.stream_descriptor.name, namespace=ps.stream.stream_descriptor.namespace
+                ): ps.stream.stream_state
+                for ps in state
+                if ps.type == AirbyteStateType.STREAM and hasattr(ps, "stream")
             }
             return None, streams
-        else:
-            raise ValueError("Input state should come in the form of list of Airbyte state messages or a mapping of states")
+
+        raise ValueError("Input state should come in the form of list of Airbyte state messages or a mapping of states")
 
     @staticmethod
     def _create_descriptor_to_stream_state_mapping(
@@ -159,11 +147,12 @@ class ConnectorStateManager:
         :param stream_to_instance_map: A mapping of stream name to stream instance used to retrieve a stream's namespace
         :return: The mapping of all of a sync's streams to the corresponding stream state
         """
-        streams = {}
-        for stream_name, state_value in state.items():
-            namespace = stream_to_instance_map[stream_name].namespace if stream_name in stream_to_instance_map else None
-            stream_descriptor = HashableStreamDescriptor(name=stream_name, namespace=namespace)
-            streams[stream_descriptor] = AirbyteStateBlob.parse_obj(state_value or {})
+        streams = {
+            HashableStreamDescriptor(
+                name=stream_name, namespace=stream_to_instance_map[stream_name].namespace if stream_name in stream_to_instance_map else None
+            ): AirbyteStateBlob.parse_obj(state_value or {})
+            for stream_name, state_value in state.items()
+        }
         return streams
 
     @staticmethod
@@ -191,3 +180,7 @@ class ConnectorStateManager:
     @staticmethod
     def _is_per_stream_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return isinstance(state, List)
+
+    @staticmethod
+    def _is_state_of_type(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]], state_type: AirbyteStateType) -> bool:
+        return isinstance(state, List) and len(state) == 1 and isinstance(state[0], AirbyteStateMessage) and state[0].type == state_type
