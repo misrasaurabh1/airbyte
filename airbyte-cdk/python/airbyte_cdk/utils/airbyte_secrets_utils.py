@@ -9,6 +9,7 @@ import dpath
 
 def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
     paths = []
+    filtered_path = []
 
     def traverse_schema(schema_item: Any, path: List[str]) -> None:
         """
@@ -22,15 +23,16 @@ def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
         schema_item=True, path=['password', 'airbyte_secret']
         """
         if isinstance(schema_item, dict):
-            for k, v in schema_item.items():
-                traverse_schema(v, [*path, k])
+            if "airbyte_secret" in schema_item and schema_item["airbyte_secret"] is True:
+                paths.append([p for p in path if p not in {"properties", "oneOf"}])
+            else:
+                for k, v in schema_item.items():
+                    path.append(k)
+                    traverse_schema(v, path)
+                    path.pop()
         elif isinstance(schema_item, list):
-            for i in schema_item:
-                traverse_schema(i, path)
-        else:
-            if path[-1] == "airbyte_secret" and schema_item is True:
-                filtered_path = [p for p in path[:-1] if p not in ["properties", "oneOf"]]
-                paths.append(filtered_path)
+            for item in schema_item:
+                traverse_schema(item, path)
 
     traverse_schema(spec, [])
     return paths
