@@ -182,7 +182,7 @@ class ConnectorStateManager:
     @staticmethod
     def _is_global_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return (
-            isinstance(state, list)  # use 'list' directly instead of List
+            isinstance(state, list)
             and len(state) == 1
             and isinstance(state[0], AirbyteStateMessage)
             and state[0].type == AirbyteStateType.GLOBAL
