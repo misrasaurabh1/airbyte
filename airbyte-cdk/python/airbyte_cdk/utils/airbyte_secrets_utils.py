@@ -23,7 +23,9 @@ def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
         """
         if isinstance(schema_item, dict):
             for k, v in schema_item.items():
-                traverse_schema(v, [*path, k])
+                path.append(k)
+                traverse_schema(v, path)
+                path.pop()
         elif isinstance(schema_item, list):
             for i in schema_item:
                 traverse_schema(i, path)
@@ -43,13 +45,18 @@ def get_secrets(connection_specification: Mapping[str, Any], config: Mapping[str
     """
     secret_paths = get_secret_paths(connection_specification.get("properties", {}))
     result = []
+
+    def get_nested_value(d: Mapping[str, Any], keys: List[str]) -> Any:
+        for key in keys:
+            d = d[key]
+        return d
+
     for path in secret_paths:
         try:
-            result.append(dpath.get(config, path))
-        except KeyError:
-            # Since we try to get paths to all known secrets in the spec, in the case of oneOfs, some secret fields may not be present
-            # In that case, a KeyError is thrown. This is expected behavior.
+            result.append(get_nested_value(config, path))
+        except (KeyError, TypeError):
             pass
+
     return result
 
 
