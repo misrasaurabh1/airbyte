@@ -3,7 +3,7 @@
 #
 
 
-from datetime import datetime
+import time
 from typing import List, Optional, Union
 
 from airbyte_cdk.models import (
@@ -28,7 +28,7 @@ def as_airbyte_message(
     Builds an AirbyteStreamStatusTraceMessage for the provided stream
     """
 
-    now_millis = datetime.now().timestamp() * 1000.0
+    now_millis = time.time_ns() / 1_000_000
 
     trace_message = AirbyteTraceMessage(
         type=TraceType.STREAM_STATUS,
