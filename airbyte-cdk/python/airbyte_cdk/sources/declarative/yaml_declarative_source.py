@@ -38,9 +38,9 @@ class YamlDeclarativeSource(ManifestDeclarativeSource):
     @staticmethod
     def _parse(connection_definition_str: str) -> ConnectionDefinition:
         """
-        Parses a yaml file into a manifest. Component references still exist in the manifest which will be
+        Parses a yaml string into a manifest. Component references still exist in the manifest which will be
         resolved during the creating of the DeclarativeSource.
         :param connection_definition_str: yaml string to parse
         :return: The ConnectionDefinition parsed from connection_definition_str
         """
-        return yaml.safe_load(connection_definition_str)  # type: ignore # yaml.safe_load doesn't return a type but know it is a Mapping
+        return yaml.load(connection_definition_str, Loader=yaml.CLoader)  # yaml.CLoader is faster than safe_load
