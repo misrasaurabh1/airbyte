@@ -147,17 +147,14 @@ def _choose_wider_type(key: str, t1: Mapping[str, Any], t2: Mapping[str, Any]) -
 
 def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
     if isinstance(value, list):
-        # We do not compare lists directly; the individual items are compared.
-        # If we hit this condition, it means that the expected type is not
-        # compatible with the inferred type.
         return False
 
-    inferred_type = ComparableType(get_inferred_type(value))
+    inferred_type = get_inferred_type(value)
 
-    if inferred_type is None:
+    if not inferred_type:
         return False
 
-    return ComparableType(inferred_type) <= ComparableType(get_comparable_type(expected_type))
+    return comparable_type_le(ComparableType(inferred_type), get_comparable_type(expected_type))
 
 
 def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> bool:
@@ -169,27 +166,28 @@ def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> 
     - For every column in the record, that column's type is equal to or narrower than the same column's
       type in the schema.
     """
-    schema_columns = set(schema.get("properties", {}).keys())
-    record_columns = set(record.keys())
+    schema_properties = schema.get("properties", {})
 
-    if not record_columns.issubset(schema_columns):
-        return False
+    for column, value in record.items():
+        if column not in schema_properties:
+            return False
 
-    for column, definition in schema.get("properties", {}).items():
-        expected_type = definition.get("type")
-        value = record.get(column)
+        expected_type = schema_properties[column].get("type")
 
         if value is not None:
             if isinstance(expected_type, list):
-                return any(is_equal_or_narrower_type(value, e) for e in expected_type)
+                if not any(is_equal_or_narrower_type(value, e) for e in expected_type):
+                    return False
             elif expected_type == "object":
-                return isinstance(value, dict)
+                if not isinstance(value, dict):
+                    return False
             elif expected_type == "array":
                 if not isinstance(value, list):
                     return False
-                array_type = definition.get("items", {}).get("type")
-                if not all(is_equal_or_narrower_type(v, array_type) for v in value):
-                    return False
+                array_type = schema_properties[column].get("items", {}).get("type")
+                if array_type:
+                    if not all(is_equal_or_narrower_type(v, array_type) for v in value):
+                        return False
             elif not is_equal_or_narrower_type(value, expected_type):
                 return False
 
@@ -247,3 +245,8 @@ def type_mapping_to_jsonschema(input_schema: Optional[Union[str, Mapping[str, st
         result_schema[col_name] = {"type": json_schema_type}
 
     return {"type": "object", "properties": result_schema}
+
+
+def comparable_type_le(type1, type2) -> bool:
+    # Assuming ComparableType has a method to compare types
+    return type1 <= type2
