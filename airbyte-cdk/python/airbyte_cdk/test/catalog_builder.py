@@ -37,7 +37,12 @@ class ConfiguredAirbyteStreamBuilder:
         return self
 
     def build(self) -> ConfiguredAirbyteStream:
-        return ConfiguredAirbyteStream.parse_obj(self._stream)
+        return ConfiguredAirbyteStream(
+            stream=self._stream["stream"],
+            primary_key=self._stream["primary_key"],
+            sync_mode=self._stream["sync_mode"],
+            destination_sync_mode=self._stream["destination_sync_mode"],
+        )
 
 
 class CatalogBuilder:
@@ -45,12 +50,10 @@ class CatalogBuilder:
         self._streams: List[ConfiguredAirbyteStreamBuilder] = []
 
     @overload
-    def with_stream(self, name: ConfiguredAirbyteStreamBuilder) -> "CatalogBuilder":
-        ...
+    def with_stream(self, name: ConfiguredAirbyteStreamBuilder) -> "CatalogBuilder": ...
 
     @overload
-    def with_stream(self, name: str, sync_mode: SyncMode) -> "CatalogBuilder":
-        ...
+    def with_stream(self, name: str, sync_mode: SyncMode) -> "CatalogBuilder": ...
 
     def with_stream(self, name: Union[str, ConfiguredAirbyteStreamBuilder], sync_mode: Union[SyncMode, None] = None) -> "CatalogBuilder":
         # As we are introducing a fully fledge ConfiguredAirbyteStreamBuilder, we would like to deprecate the previous interface
