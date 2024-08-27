@@ -57,11 +57,18 @@ class AbstractAvailabilityStrategy(ABC):
     The existing AvailabilityStrategy is tightly coupled with Stream and Source, which yields to circular dependencies and makes it difficult to move away from the Stream interface to AbstractStream.
     """
 
-    @abstractmethod
     def check_availability(self, logger: logging.Logger) -> StreamAvailability:
         """
         Checks stream availability.
 
+        Important to note that the stream and source parameters are not used by the underlying AbstractAvailabilityStrategy.
+
+        :param stream: (unused)
         :param logger: logger object to use
-        :return: A StreamAvailability object describing the stream's availability
+        :param source: (unused)
+        :return: A tuple of (boolean, str). If boolean is true, then the stream
         """
+        return (
+            self._abstract_availability_strategy.check_availability(logger).is_available(),
+            self._abstract_availability_strategy.check_availability(logger).message(),
+        )
