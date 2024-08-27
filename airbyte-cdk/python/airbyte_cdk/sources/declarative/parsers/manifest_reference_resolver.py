@@ -195,12 +195,8 @@ def _parse_path(ref: str) -> Tuple[Union[str, int], str]:
     >>> _parse_path("8foo/bar")
     "8foo", "bar"
     """
-    match = re.match(r"([^/]*)/?(.*)", ref)
-    if match:
-        first, rest = match.groups()
-        try:
-            return int(first), rest
-        except ValueError:
-            return first, rest
-    else:
-        raise ValueError(f"Invalid path {ref} specified")
+    first, sep, rest = ref.partition("/")
+    try:
+        return int(first), rest
+    except ValueError:
+        return first, rest
