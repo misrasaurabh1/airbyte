@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from dataclasses import InitVar, dataclass, field
 from typing import Any, Mapping, Optional, Union
 
@@ -59,12 +60,10 @@ class OffsetIncrement(PaginationStrategy):
     def next_page_token(self, response: requests.Response, last_page_size: int, last_record: Optional[Record]) -> Optional[Any]:
         decoded_response = next(self.decoder.decode(response))
 
-        # Stop paginating when there are fewer records than the page size or the current page has no records
-        if (self._page_size and last_page_size < self._page_size.eval(self.config, response=decoded_response)) or last_page_size == 0:
-            return None
-        else:
+        if not self._page_size or last_page_size >= self._page_size.eval(self.config, response=decoded_response):
             self._offset += last_page_size
-            return self._offset
+            return self._offset if last_page_size > 0 else None
+        return None
 
     def reset(self, reset_value: Optional[Any] = 0) -> None:
         if not isinstance(reset_value, int):
