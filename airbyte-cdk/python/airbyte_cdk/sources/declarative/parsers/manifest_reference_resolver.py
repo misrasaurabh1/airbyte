@@ -140,7 +140,7 @@ class ManifestReferenceResolver:
 
     @staticmethod
     def _is_ref(node: Any) -> bool:
-        return isinstance(node, str) and node.startswith("#/")
+        return type(node) is str and node[:2] == "#/"
 
     @staticmethod
     def _is_ref_key(key: str) -> bool:
