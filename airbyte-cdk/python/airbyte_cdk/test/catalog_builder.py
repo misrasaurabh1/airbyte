@@ -28,8 +28,9 @@ class ConfiguredAirbyteStreamBuilder:
         return self
 
     def with_primary_key(self, pk: List[List[str]]) -> "ConfiguredAirbyteStreamBuilder":
-        self._stream["primary_key"] = pk
-        self._stream["stream"]["source_defined_primary_key"] = pk  # type: ignore  # we assume that self._stream["stream"] is a Dict[str, Any]
+        stream = self._stream
+        stream["primary_key"] = pk
+        stream["stream"]["source_defined_primary_key"] = pk  # type: ignore  # we assume that self._stream["stream"] is a Dict[str, Any]
         return self
 
     def with_json_schema(self, json_schema: Dict[str, Any]) -> "ConfiguredAirbyteStreamBuilder":
@@ -45,12 +46,10 @@ class CatalogBuilder:
         self._streams: List[ConfiguredAirbyteStreamBuilder] = []
 
     @overload
-    def with_stream(self, name: ConfiguredAirbyteStreamBuilder) -> "CatalogBuilder":
-        ...
+    def with_stream(self, name: ConfiguredAirbyteStreamBuilder) -> "CatalogBuilder": ...
 
     @overload
-    def with_stream(self, name: str, sync_mode: SyncMode) -> "CatalogBuilder":
-        ...
+    def with_stream(self, name: str, sync_mode: SyncMode) -> "CatalogBuilder": ...
 
     def with_stream(self, name: Union[str, ConfiguredAirbyteStreamBuilder], sync_mode: Union[SyncMode, None] = None) -> "CatalogBuilder":
         # As we are introducing a fully fledge ConfiguredAirbyteStreamBuilder, we would like to deprecate the previous interface
