@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 import json
 from dataclasses import InitVar, dataclass, field
 from functools import partial
@@ -23,6 +24,7 @@ from airbyte_cdk.sources.http_logger import format_http_message
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 from airbyte_cdk.utils.mapping_helpers import combine_mappings
+from collections.abc import Mapping
 
 FULL_REFRESH_SYNC_COMPLETE_KEY = "__ab_full_refresh_sync_complete"
 
@@ -404,12 +406,9 @@ class SimpleRetriever(Retriever):
         As we allow the output of _read_pages to be StreamData, it can be multiple things. Therefore, we need to filter out and normalize
         to data to streamline the rest of the process.
         """
-        if isinstance(stream_data, Record):
-            # Record is not part of `StreamData` but is the most common implementation of `Mapping[str, Any]` which is part of `StreamData`
-            return stream_data
-        elif isinstance(stream_data, (dict, Mapping)):
-            return Record(dict(stream_data), stream_slice)
-        elif isinstance(stream_data, AirbyteMessage) and stream_data.record:
+        if isinstance(stream_data, (dict, Mapping)):
+            return Record(stream_data if isinstance(stream_data, dict) else dict(stream_data), stream_slice)
+        if isinstance(stream_data, AirbyteMessage) and stream_data.record:
             return Record(stream_data.record.data, stream_slice)
         return None
 
