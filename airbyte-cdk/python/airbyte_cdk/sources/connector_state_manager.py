@@ -91,16 +91,14 @@ class ConnectorStateManager:
         Takes an incoming list of state messages or a global state message and extracts state attributes according to
         type which can then be assigned to the new state manager being instantiated
         :param state: The incoming state input
-        :return: A tuple of shared state and per stream state assembled from the incoming state list
+        :return: A tuple of shared state and per-stream state assembled from the incoming state list
         """
-        if state is None:
+        if not state:
             return None, {}
 
-        is_global = cls._is_global_state(state)
-
-        if is_global:
-            global_state = state[0].global_  # type: ignore # We verified state is a list in _is_global_state
-            shared_state = copy.deepcopy(global_state.shared_state, {})
+        if cls._is_global_state(state):
+            global_state = state[0].global_  # We verified state is a list in _is_global_state
+            shared_state = global_state.shared_state
             streams = {
                 HashableStreamDescriptor(
                     name=per_stream_state.stream_descriptor.name, namespace=per_stream_state.stream_descriptor.namespace
@@ -108,20 +106,20 @@ class ConnectorStateManager:
                 for per_stream_state in global_state.stream_states
             }
             return shared_state, streams
-        else:
-            streams = {
-                HashableStreamDescriptor(
-                    name=per_stream_state.stream.stream_descriptor.name, namespace=per_stream_state.stream.stream_descriptor.namespace
-                ): per_stream_state.stream.stream_state
-                for per_stream_state in state
-                if per_stream_state.type == AirbyteStateType.STREAM and hasattr(per_stream_state, "stream")  # type: ignore # state is always a list of AirbyteStateMessage if is_per_stream is True
-            }
-            return None, streams
+
+        streams = {
+            HashableStreamDescriptor(
+                name=per_stream_state.stream.stream_descriptor.name, namespace=per_stream_state.stream.stream_descriptor.namespace
+            ): per_stream_state.stream.stream_state
+            for per_stream_state in state
+            if per_stream_state.type == AirbyteStateType.STREAM and hasattr(per_stream_state, "stream")
+        }
+        return None, streams
 
     @staticmethod
     def _is_global_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return (
-            isinstance(state, List)
+            isinstance(state, list)
             and len(state) == 1
             and isinstance(state[0], AirbyteStateMessage)
             and state[0].type == AirbyteStateType.GLOBAL
