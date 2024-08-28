@@ -159,9 +159,11 @@ class CsvParser(FileTypeParser):
         #  sources will likely require one. Rather than modify the interface now we can wait until the real use case
         config_format = _extract_format(config)
         type_inferrer_by_field: Dict[str, _TypeInferrer] = defaultdict(
-            lambda: _JsonTypeInferrer(config_format.true_values, config_format.false_values, config_format.null_values)
-            if config_format.inference_type != InferenceType.NONE
-            else _DisabledTypeInferrer()
+            lambda: (
+                _JsonTypeInferrer(config_format.true_values, config_format.false_values, config_format.null_values)
+                if config_format.inference_type != InferenceType.NONE
+                else _DisabledTypeInferrer()
+            )
         )
         data_generator = self._csv_reader.read_data(config, file, stream_reader, logger, self.file_read_mode)
         read_bytes = 0
@@ -388,13 +390,19 @@ class _JsonTypeInferrer(_TypeInferrer):
 
         if value in self._null_values:
             inferred_types.add(self._NULL_TYPE)
-        if self._is_boolean(value):
-            inferred_types.add(self._BOOLEAN_TYPE)
-        if self._is_integer(value):
-            inferred_types.add(self._INTEGER_TYPE)
-            inferred_types.add(self._NUMBER_TYPE)
-        elif self._is_number(value):
-            inferred_types.add(self._NUMBER_TYPE)
+        else:
+            if value in self._boolean_trues or value in self._boolean_falses:
+                inferred_types.add(self._BOOLEAN_TYPE)
+            try:
+                int_value = int(value)
+                inferred_types.add(self._INTEGER_TYPE)
+                inferred_types.add(self._NUMBER_TYPE)
+            except ValueError:
+                try:
+                    float_value = float(value)
+                    inferred_types.add(self._NUMBER_TYPE)
+                except ValueError:
+                    pass
 
         inferred_types.add(self._STRING_TYPE)
         return inferred_types
