@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 import json
 from dataclasses import InitVar, dataclass, field
 from functools import partial
@@ -229,20 +230,20 @@ class SimpleRetriever(Retriever):
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Record]:
-        if not response:
+        if response is None:
             self._last_response = None
             return []
 
         self._last_response = response
-        record_generator = self.record_selector.select_records(
+        self._last_page_size = 0
+
+        for record in self.record_selector.select_records(
             response=response,
             stream_state=stream_state,
             records_schema=records_schema,
             stream_slice=stream_slice,
             next_page_token=next_page_token,
-        )
-        self._last_page_size = 0
-        for record in record_generator:
+        ):
             self._last_page_size += 1
             self._last_record = record
             yield record
