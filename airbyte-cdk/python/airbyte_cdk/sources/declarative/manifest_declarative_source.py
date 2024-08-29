@@ -104,30 +104,36 @@ class ManifestDeclarativeSource(DeclarativeSource):
     @staticmethod
     def _initialize_cache_for_parent_streams(stream_configs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         parent_streams = set()
+        parent_configs_to_update = []
 
         def update_with_cache_parent_configs(parent_configs: list[dict[str, Any]]) -> None:
             for parent_config in parent_configs:
-                parent_streams.add(parent_config["stream"]["name"])
-                parent_config["stream"]["retriever"]["requester"]["use_cache"] = True
+                parent_stream_name = parent_config["stream"]["name"]
+                if parent_stream_name not in parent_streams:
+                    parent_streams.add(parent_stream_name)
+                    parent_configs_to_update.append(parent_config)
 
         for stream_config in stream_configs:
-            if stream_config.get("incremental_sync", {}).get("parent_stream"):
-                parent_streams.add(stream_config["incremental_sync"]["parent_stream"]["name"])
-                stream_config["incremental_sync"]["parent_stream"]["retriever"]["requester"]["use_cache"] = True
-
-            elif stream_config.get("retriever", {}).get("partition_router", {}):
-                partition_router = stream_config["retriever"]["partition_router"]
-
-                if isinstance(partition_router, dict) and partition_router.get("parent_stream_configs"):
-                    update_with_cache_parent_configs(partition_router["parent_stream_configs"])
+            incremental_sync = stream_config.get("incremental_sync", {})
+            retriever = stream_config.get("retriever", {})
+            if "parent_stream" in incremental_sync:
+                parent_stream = incremental_sync["parent_stream"]
+                parent_streams.add(parent_stream["name"])
+                parent_stream["retriever"]["requester"]["use_cache"] = True
+            elif "partition_router" in retriever:
+                partition_router = retriever["partition_router"]
+                if isinstance(partition_router, dict):
+                    update_with_cache_parent_configs(partition_router.get("parent_stream_configs", []))
                 elif isinstance(partition_router, list):
                     for router in partition_router:
-                        if router.get("parent_stream_configs"):
-                            update_with_cache_parent_configs(router["parent_stream_configs"])
+                        update_with_cache_parent_configs(router.get("parent_stream_configs", []))
 
         for stream_config in stream_configs:
             if stream_config["name"] in parent_streams:
                 stream_config["retriever"]["requester"]["use_cache"] = True
+
+        for parent_config in parent_configs_to_update:
+            parent_config["stream"]["retriever"]["requester"]["use_cache"] = True
 
         return stream_configs
 
