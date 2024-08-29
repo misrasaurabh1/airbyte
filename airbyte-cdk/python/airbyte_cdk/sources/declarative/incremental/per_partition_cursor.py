@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
 
 from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
@@ -242,18 +243,27 @@ class PerPartitionCursor(DeclarativeCursor):
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-        if stream_slice:
-            return self._partition_router.get_request_body_json(  # type: ignore # this always returns a mapping
-                stream_state=stream_state,
-                stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
-                next_page_token=next_page_token,
-            ) | self._cursor_per_partition[self._to_partition_key(stream_slice.partition)].get_request_body_json(
-                stream_state=stream_state,
-                stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
-                next_page_token=next_page_token,
-            )
-        else:
+        if stream_slice is None:
             raise ValueError("A partition needs to be provided in order to get request body json")
+
+        partition_key = self._to_partition_key(stream_slice.partition)
+        partition_cursor = self._cursor_per_partition.get(partition_key)
+        if partition_cursor is None:
+            partition_cursor = self._cursor_factory.create_cursor()
+            self._cursor_per_partition[partition_key] = partition_cursor
+
+        partition_request_body = self._partition_router.get_request_body_json(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
+            next_page_token=next_page_token,
+        )
+        cursor_request_body = partition_cursor.get_request_body_json(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+            next_page_token=next_page_token,
+        )
+
+        return {**partition_request_body, **cursor_request_body}
 
     def should_be_synced(self, record: Record) -> bool:
         return self._get_cursor(record).should_be_synced(self._convert_record_to_cursor_record(record))
