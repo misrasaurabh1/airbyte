@@ -24,10 +24,14 @@ class SliceLogger(ABC):
         Mapping is an interface that can be implemented in various ways. However, json.dumps will just do a `str(<object>)` if
         the slice is a class implementing Mapping. Therefore, we want to cast this as a dict before passing this to json.dump
         """
-        printable_slice = dict(_slice) if _slice else _slice
+        if _slice:
+            printable_slice = dict(_slice)
+        else:
+            printable_slice = _slice
+
         return AirbyteMessage(
             type=MessageType.LOG,
-            log=AirbyteLogMessage(level=Level.INFO, message=f"{SliceLogger.SLICE_LOG_PREFIX}{json.dumps(printable_slice, default=str)}"),
+            log=AirbyteLogMessage(level=Level.INFO, message=f"{self.SLICE_LOG_PREFIX}{json.dumps(printable_slice, default=str)}"),
         )
 
     @abstractmethod
