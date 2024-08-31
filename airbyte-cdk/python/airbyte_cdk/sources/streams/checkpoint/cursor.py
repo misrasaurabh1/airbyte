@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
@@ -61,6 +62,7 @@ class Cursor(ABC):
         """
         Evaluating if a record should be synced allows for filtering and stop condition on pagination
         """
+        pass
 
     @abstractmethod
     def is_greater_than_or_equal(self, first: Record, second: Record) -> bool:
