@@ -281,13 +281,12 @@ class HttpStream(Stream, CheckpointMixin, ABC):
         :param response:
         :return: A user-friendly message that indicates the cause of the error
         """
-
-        # default logic to grab error from common fields
-        def _try_get_error(value: Optional[JsonType]) -> Optional[str]:
+        try:
+            value = response.json()
             if isinstance(value, str):
                 return value
             elif isinstance(value, list):
-                errors_in_value = [_try_get_error(v) for v in value]
+                errors_in_value = [cls._extract_error(v) for v in value]
                 return ", ".join(v for v in errors_in_value if v is not None)
             elif isinstance(value, dict):
                 new_value = (
@@ -299,12 +298,7 @@ class HttpStream(Stream, CheckpointMixin, ABC):
                     or value.get("failure")
                     or value.get("detail")
                 )
-                return _try_get_error(new_value)
-            return None
-
-        try:
-            body = response.json()
-            return _try_get_error(body)
+                return cls._extract_error(new_value)
         except requests.exceptions.JSONDecodeError:
             return None
 
@@ -472,6 +466,26 @@ class HttpStream(Stream, CheckpointMixin, ABC):
 
         :return Optional[Callable[[requests.Response], Any]]: Function that will be used in logging inside HttpClient
         """
+        return None
+
+    @staticmethod
+    def _extract_error(value: Optional[JsonType]) -> Optional[str]:
+        if isinstance(value, str):
+            return value
+        elif isinstance(value, list):
+            errors_in_value = [HttpStream._extract_error(v) for v in value]
+            return ", ".join(v for v in errors_in_value if v is not None)
+        elif isinstance(value, dict):
+            new_value = (
+                value.get("message")
+                or value.get("messages")
+                or value.get("error")
+                or value.get("errors")
+                or value.get("failures")
+                or value.get("failure")
+                or value.get("detail")
+            )
+            return HttpStream._extract_error(new_value)
         return None
 
 
