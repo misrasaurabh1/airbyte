@@ -14,6 +14,7 @@ class EmitRecordPolicy(AbstractSchemaValidationPolicy):
     name = "emit_record"
 
     def record_passes_validation_policy(self, record: Mapping[str, Any], schema: Optional[Mapping[str, Any]]) -> bool:
+        """Always returns True indicating the record passes the validation policy."""
         return True
 
 
