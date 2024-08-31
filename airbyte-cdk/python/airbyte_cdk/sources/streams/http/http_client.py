@@ -144,13 +144,10 @@ class HttpClient:
         :param params:
         :return:
         """
-        if params is None:
-            params = {}
-        query_string = urllib.parse.urlparse(url).query
-        query_dict = {k: v[0] for k, v in urllib.parse.parse_qs(query_string).items()}
-
-        duplicate_keys_with_same_value = {k for k in query_dict.keys() if str(params.get(k)) == str(query_dict[k])}
-        return {k: v for k, v in params.items() if k not in duplicate_keys_with_same_value}
+        if not params:
+            return {}
+        query_dict = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        return {k: v for k, v in params.items() if k not in query_dict or str(query_dict[k][0]) != str(v)}
 
     def _create_prepared_request(
         self,
@@ -384,3 +381,8 @@ class HttpClient:
         )
 
         return request, response
+
+    def _request_session(self):
+        if self._use_cache:
+            return requests_cache.CachedSession()
+        return requests.Session()
