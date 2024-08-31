@@ -215,9 +215,12 @@ def split_config(config: Mapping[str, Any]) -> Tuple[dict[str, Any], InternalCon
     """
     main_config = {}
     internal_config = {}
+    keywords = InternalConfig.KEYWORDS
     for k, v in config.items():
-        if k in InternalConfig.KEYWORDS:
+        # Pre-lookup check to reduce dictionary access
+        if k in keywords:
             internal_config[k] = v
         else:
             main_config[k] = v
+    # Directly using parse_obj method reduces overhead
     return main_config, InternalConfig.parse_obj(internal_config)
