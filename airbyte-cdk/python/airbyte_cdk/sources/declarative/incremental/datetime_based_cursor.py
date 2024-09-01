@@ -303,15 +303,21 @@ class DatetimeBasedCursor(DeclarativeCursor):
         return {}
 
     def _get_request_options(self, option_type: RequestOptionType, stream_slice: Optional[StreamSlice]) -> Mapping[str, Any]:
-        options: MutableMapping[str, Any] = {}
         if not stream_slice:
-            return options
+            return {}
+
+        options: MutableMapping[str, Any] = {}
+        config = self.config
+
+        start_field_name = self.start_time_option.field_name.eval(config) if self.start_time_option else None
+        end_field_name = self.end_time_option.field_name.eval(config) if self.end_time_option else None
+
         if self.start_time_option and self.start_time_option.inject_into == option_type:
-            options[self.start_time_option.field_name.eval(config=self.config)] = stream_slice.get(  # type: ignore # field_name is always casted to an interpolated string
-                self._partition_field_start.eval(self.config)
-            )
+            options[start_field_name] = stream_slice.get(self._partition_field_start.eval(config))
+
         if self.end_time_option and self.end_time_option.inject_into == option_type:
-            options[self.end_time_option.field_name.eval(config=self.config)] = stream_slice.get(self._partition_field_end.eval(self.config))  # type: ignore # field_name is always casted to an interpolated string
+            options[end_field_name] = stream_slice.get(self._partition_field_end.eval(config))
+
         return options
 
     def should_be_synced(self, record: Record) -> bool:
