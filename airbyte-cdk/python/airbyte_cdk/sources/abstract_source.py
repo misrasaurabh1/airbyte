@@ -44,16 +44,7 @@ class AbstractSource(Source, ABC):
 
     @abstractmethod
     def check_connection(self, logger: logging.Logger, config: Mapping[str, Any]) -> Tuple[bool, Optional[Any]]:
-        """
-        :param logger: source logger
-        :param config: The user-provided configuration as specified by the source's spec.
-          This usually contains information required to check connection e.g. tokens, secrets and keys etc.
-        :return: A tuple of (boolean, error). If boolean is true, then the connection check is successful
-          and we can connect to the underlying data source using the provided configuration.
-          Otherwise, the input config cannot be used to connect to the underlying data source,
-          and the "error" object should describe what went wrong.
-          The error object will be cast to string to display the problem to the user.
-        """
+        """Check if the connection to the data source can be established."""
 
     @abstractmethod
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
@@ -75,13 +66,11 @@ class AbstractSource(Source, ABC):
         return AirbyteCatalog(streams=streams)
 
     def check(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteConnectionStatus:
-        """Implements the Check Connection operation from the Airbyte Specification.
-        See https://docs.airbyte.com/understanding-airbyte/airbyte-protocol/#check.
-        """
+        """Check Connection operation from the Airbyte Specification."""
         check_succeeded, error = self.check_connection(logger, config)
-        if not check_succeeded:
-            return AirbyteConnectionStatus(status=Status.FAILED, message=repr(error))
-        return AirbyteConnectionStatus(status=Status.SUCCEEDED)
+        return AirbyteConnectionStatus(
+            status=Status.SUCCEEDED if check_succeeded else Status.FAILED, message=repr(error) if not check_succeeded else None
+        )
 
     def read(
         self,
