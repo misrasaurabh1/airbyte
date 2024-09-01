@@ -150,7 +150,10 @@ class FakeEmbedder(Embedder):
         return None
 
     def embed_documents(self, documents: List[Document]) -> List[Optional[List[float]]]:
-        return cast(List[Optional[List[float]]], self.embeddings.embed_documents([document.page_content for document in documents]))
+        # Using list comprehension to create a list of page contents.
+        page_contents = [doc.page_content for doc in documents]
+        # Directly passing page_contents to embed_documents method.
+        return self.embeddings.embed_documents(page_contents)
 
     @property
     def embedding_dimensions(self) -> int:
