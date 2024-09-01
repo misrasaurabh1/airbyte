@@ -78,15 +78,12 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         :param json_schema_path: The path to the schema JSON file
         :return: Tuple of the resource name and the path to the schema file
         """
-        split_path = json_schema_path.split("/")
+        split_path = json_schema_path.split("/", 1)
 
-        if split_path[0] == "" or split_path[0] == ".":
-            split_path = split_path[1:]
-
-        if len(split_path) == 0:
-            return "", ""
+        if not split_path[0] or split_path[0] == ".":
+            split_path = split_path[1].split("/", 1) if len(split_path) > 1 else [""]
 
         if len(split_path) == 1:
             return "", split_path[0]
 
-        return split_path[0], "/".join(split_path[1:])
+        return split_path[0], split_path[1]
