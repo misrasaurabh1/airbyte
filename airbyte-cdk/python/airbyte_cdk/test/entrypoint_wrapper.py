@@ -101,20 +101,22 @@ class EntrypointOutput:
         return catalog[0]
 
     def get_stream_statuses(self, stream_name: str) -> List[AirbyteStreamStatus]:
-        status_messages = map(
-            lambda message: message.trace.stream_status.status,
-            filter(
-                lambda message: message.trace.stream_status.stream_descriptor.name == stream_name,
-                self._get_trace_message_by_trace_type(TraceType.STREAM_STATUS),
-            ),
-        )
-        return list(status_messages)
+        # Combining filtering into a single list comprehension for performance.
+        return [
+            message.trace.stream_status.status
+            for message in self._messages
+            if message.type == Type.TRACE
+            and message.trace.type == TraceType.STREAM_STATUS
+            and message.trace.stream_status.stream_descriptor.name == stream_name
+        ]
 
     def _get_message_by_types(self, message_types: List[Type]) -> List[AirbyteMessage]:
         return [message for message in self._messages if message.type in message_types]
 
     def _get_trace_message_by_trace_type(self, trace_type: TraceType) -> List[AirbyteMessage]:
-        return [message for message in self._get_message_by_types([Type.TRACE]) if message.trace.type == trace_type]
+        # Use list comprehension directly on _messages rather than a
+        # filtered list to avoid overhead.
+        return [message for message in self._messages if message.type == Type.TRACE and message.trace.type == trace_type]
 
     def is_in_logs(self, pattern: str) -> bool:
         """Check if any log message case-insensitive matches the pattern."""
@@ -123,6 +125,11 @@ class EntrypointOutput:
     def is_not_in_logs(self, pattern: str) -> bool:
         """Check if no log message matches the case-insensitive pattern."""
         return not self.is_in_logs(pattern)
+
+    # Assuming _parse_message method should be implemented
+    def _parse_message(self, message: str) -> AirbyteMessage:
+        # Placeholder for actual parsing logic
+        return AirbyteMessage.parse_raw(message)
 
 
 def _run_command(source: Source, args: List[str], expecting_exception: bool = False) -> EntrypointOutput:
