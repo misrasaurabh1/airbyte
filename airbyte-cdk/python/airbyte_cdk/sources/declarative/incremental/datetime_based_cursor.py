@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import datetime
 from dataclasses import InitVar, dataclass, field
 from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Union
@@ -221,9 +222,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
         return dates
 
     def _is_within_date_range(self, start: datetime.datetime, end: datetime.datetime) -> bool:
-        if self.is_compare_strictly:
-            return start < end
-        return start <= end
+        return start < end if self.is_compare_strictly else start <= end
 
     def _evaluate_next_start_date_safely(self, start: datetime.datetime, step: datetime.timedelta) -> datetime.datetime:
         """
