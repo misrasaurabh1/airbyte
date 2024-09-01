@@ -114,7 +114,7 @@ class EntrypointOutput:
         return [message for message in self._messages if message.type in message_types]
 
     def _get_trace_message_by_trace_type(self, trace_type: TraceType) -> List[AirbyteMessage]:
-        return [message for message in self._get_message_by_types([Type.TRACE]) if message.trace.type == trace_type]
+        return [message for message in self._messages if message.type == Type.TRACE and message.trace.type == trace_type]
 
     def is_in_logs(self, pattern: str) -> bool:
         """Check if any log message case-insensitive matches the pattern."""
@@ -123,6 +123,10 @@ class EntrypointOutput:
     def is_not_in_logs(self, pattern: str) -> bool:
         """Check if no log message matches the case-insensitive pattern."""
         return not self.is_in_logs(pattern)
+
+    @staticmethod
+    def _parse_message(message: str) -> AirbyteMessage:
+        return AirbyteMessage.parse_raw(message)
 
 
 def _run_command(source: Source, args: List[str], expecting_exception: bool = False) -> EntrypointOutput:
@@ -215,3 +219,7 @@ def make_file(path: Path, file_contents: Optional[Union[str, Mapping[str, Any], 
     else:
         path.write_text(json.dumps(file_contents))
     return str(path)
+
+
+def as_assembled_message(uncaught_exception: BaseException) -> List[AirbyteMessage]:
+    return [assemble_uncaught_exception(type(uncaught_exception), uncaught_exception).as_airbyte_message()]
