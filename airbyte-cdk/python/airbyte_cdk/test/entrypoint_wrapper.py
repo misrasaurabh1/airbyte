@@ -118,7 +118,11 @@ class EntrypointOutput:
 
     def is_in_logs(self, pattern: str) -> bool:
         """Check if any log message case-insensitive matches the pattern."""
-        return any(re.search(pattern, entry.log.message, flags=re.IGNORECASE) for entry in self.logs)
+        compiled_pattern = re.compile(pattern, flags=re.IGNORECASE)
+        for entry in self.logs:
+            if compiled_pattern.search(entry.log.message):
+                return True
+        return False
 
     def is_not_in_logs(self, pattern: str) -> bool:
         """Check if no log message matches the case-insensitive pattern."""
