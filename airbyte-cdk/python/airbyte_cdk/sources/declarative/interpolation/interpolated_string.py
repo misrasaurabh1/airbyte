@@ -40,14 +40,15 @@ class InterpolatedString:
         :param kwargs: Optional parameters used for interpolation
         :return: The interpolated string
         """
-        if self._is_plain_string:
-            return self.string
         if self._is_plain_string is None:
-            # Let's check whether output from evaluation is the same as input.
-            # This indicates occurence of a plain string, not a template and we can skip Jinja in subsequent runs.
             evaluated = self._interpolation.eval(self.string, config, self.default, parameters=self._parameters, **kwargs)
             self._is_plain_string = self.string == evaluated
+            if self._is_plain_string:
+                return self.string
             return evaluated
+
+        if self._is_plain_string:
+            return self.string
         return self._interpolation.eval(self.string, config, self.default, parameters=self._parameters, **kwargs)
 
     def __eq__(self, other: Any) -> bool:

@@ -319,3 +319,10 @@ class HttpRequester(Requester):
         )
 
         return response
+
+    def _construct_request_options_provider(self, parameters: Mapping[str, Any]) -> InterpolatedRequestOptionsProvider:
+        if self.request_options_provider is None:
+            return InterpolatedRequestOptionsProvider(config=self.config, parameters=parameters)
+        if isinstance(self.request_options_provider, dict):
+            return InterpolatedRequestOptionsProvider(config=self.config, **self.request_options_provider)
+        return self.request_options_provider
