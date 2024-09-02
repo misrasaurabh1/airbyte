@@ -81,14 +81,15 @@ class AbstractOauth2Authenticator(AuthBase):
             "refresh_token": self.get_refresh_token(),
         }
 
-        if self.get_scopes():
-            payload["scopes"] = self.get_scopes()
+        scopes = self.get_scopes()
+        if scopes:
+            payload["scopes"] = scopes
 
-        if self.get_refresh_request_body():
-            for key, val in self.get_refresh_request_body().items():
+        refresh_request_body = self.get_refresh_request_body()
+        if refresh_request_body:
+            for key, val in refresh_request_body.items():
                 # We defer to existing oauth constructs over custom configured fields
-                if key not in payload:
-                    payload[key] = val
+                payload.setdefault(key, val)
 
         return payload
 
