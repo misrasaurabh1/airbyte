@@ -100,9 +100,45 @@ class ParquetParser(FileTypeParser):
         Convert an entry in a pyarrow table to a value that can be output by the source.
         """
         if isinstance(parquet_value, DictionaryArray):
-            return ParquetParser._dictionary_array_to_python_value(parquet_value)
+            return {"indices": parquet_value.indices.tolist(), "values": parquet_value.dictionary.tolist()}
         else:
-            return ParquetParser._scalar_to_python_value(parquet_value, parquet_format)
+            if parquet_value.as_py() is None:
+                return None
+
+            if pa.types.is_time(parquet_value.type) or pa.types.is_timestamp(parquet_value.type) or pa.types.is_date(parquet_value.type):
+                return parquet_value.as_py().isoformat()
+
+            if parquet_value.type == pa.month_day_nano_interval():
+                return json.loads(json.dumps(parquet_value.as_py()))
+
+            if ParquetParser._is_binary(parquet_value.type):
+                return parquet_value.as_py().decode("utf-8")
+
+            if pa.types.is_decimal(parquet_value.type):
+                return float(parquet_value.as_py()) if parquet_format.decimal_as_float else str(parquet_value.as_py())
+
+            if pa.types.is_map(parquet_value.type):
+                return {k: v for k, v in parquet_value.as_py()}
+
+            if pa.types.is_null(parquet_value.type):
+                return None
+
+            if pa.types.is_duration(parquet_value.type):
+                duration = parquet_value.as_py()
+                duration_seconds = duration.total_seconds()
+                unit = parquet_value.type.unit
+                if unit == "s":
+                    return duration_seconds
+                elif unit == "ms":
+                    return duration_seconds * 1000
+                elif unit == "us":
+                    return duration_seconds * 1_000_000
+                elif unit == "ns":
+                    return duration_seconds * 1_000_000_000 + duration.nanoseconds
+                else:
+                    raise ValueError(f"Unknown duration unit: {unit}")
+
+            return parquet_value.as_py()
 
     @staticmethod
     def _scalar_to_python_value(parquet_value: Scalar, parquet_format: ParquetFormat) -> Any:
