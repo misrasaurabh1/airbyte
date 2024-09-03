@@ -8,5 +8,12 @@ import re
 
 # https://stackoverflow.com/a/1176023
 def camel_to_snake(s: str) -> str:
-    s = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", s)
-    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s).lower()
+    result = []
+    for i, char in enumerate(s):
+        if char.isupper():
+            if i != 0 and (s[i - 1].islower() or (i + 1 < len(s) and s[i + 1].islower())):
+                result.append("_")
+            result.append(char.lower())
+        else:
+            result.append(char)
+    return "".join(result)
