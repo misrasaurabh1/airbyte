@@ -58,30 +58,19 @@ class LegacyToPerPartitionStateMigration(StateMigration):
         return partition_field
 
     def should_migrate(self, stream_state: Mapping[str, Any]) -> bool:
-        if _is_already_migrated(stream_state):
+        if _is_already_migrated(stream_state) or not stream_state:
             return False
 
         # There is exactly one parent stream
-        number_of_parent_streams = len(self._partition_router.parent_stream_configs)
-        if number_of_parent_streams != 1:
-            # There should be exactly one parent stream
+        if len(self._partition_router.parent_stream_configs) != 1:
             return False
-        """
-        The expected state format is
-        "<parent_key_id>" : {
-          "<cursor_field>" : "<cursor_value>"
-        }
-        """
-        if stream_state:
-            for key, value in stream_state.items():
-                if isinstance(value, dict):
-                    keys = list(value.keys())
-                    if len(keys) != 1:
-                        # The input partitioned state should only have one key
-                        return False
-                    if keys[0] != self._cursor_field:
-                        # Unexpected key. Found {keys[0]}. Expected {self._cursor.cursor_field}
-                        return False
+
+        cursor_field = self._cursor_field
+
+        for value in stream_state.values():
+            if not isinstance(value, dict) or len(value) != 1 or cursor_field not in value:
+                return False
+
         return True
 
     def migrate(self, stream_state: Mapping[str, Any]) -> Mapping[str, Any]:
