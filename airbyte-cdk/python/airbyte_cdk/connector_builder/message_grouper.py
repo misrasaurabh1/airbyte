@@ -258,7 +258,7 @@ class MessageGrouper:
 
     @staticmethod
     def _is_http_log(message: Dict[str, JsonType]) -> bool:
-        return bool(message.get("http", False))
+        return "http" in message and bool(message["http"])  # Simplified check
 
     @staticmethod
     def _is_auxiliary_http_request(message: Optional[Dict[str, Any]]) -> bool:
