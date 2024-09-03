@@ -168,18 +168,16 @@ class AirbyteEntrypoint(object):
 
     @staticmethod
     def handle_record_counts(message: AirbyteMessage, stream_message_count: DefaultDict[HashableStreamDescriptor, float]) -> AirbyteMessage:
-        match message.type:
-            case Type.RECORD:
-                stream_message_count[HashableStreamDescriptor(name=message.record.stream, namespace=message.record.namespace)] += 1.0
-            case Type.STATE:
-                stream_descriptor = message_utils.get_stream_descriptor(message)
-
-                # Set record count from the counter onto the state message
-                message.state.sourceStats = message.state.sourceStats or AirbyteStateStats()
-                message.state.sourceStats.recordCount = stream_message_count.get(stream_descriptor, 0.0)
-
-                # Reset the counter
-                stream_message_count[stream_descriptor] = 0.0
+        message_type = message.type
+        if message_type == Type.RECORD:
+            descriptor = HashableStreamDescriptor(name=message.record.stream, namespace=message.record.namespace)
+            stream_message_count[descriptor] += 1.0
+        elif message_type == Type.STATE:
+            stream_descriptor = message_utils.get_stream_descriptor(message)
+            state = message.state
+            state.sourceStats = state.sourceStats or AirbyteStateStats()
+            state.sourceStats.recordCount = stream_message_count.get(stream_descriptor, 0.0)
+            stream_message_count[stream_descriptor] = 0.0
         return message
 
     @staticmethod
