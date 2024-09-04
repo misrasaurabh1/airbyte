@@ -91,6 +91,10 @@ class ManifestComponentTransformer:
         propagated_component = declarative_component.copy()
 
         if "type" not in propagated_component:
+            # If the component has class_name we assume that this is a reference to a custom component. This is a slight change to
+            # existing behavior because we originally allowed for either class or type to be specified. After the pydantic migration,
+            # class_name will only be a valid field on custom components and this change reflects that. I checked, and we currently
+            # have no low-code connectors that use class_name except for custom components.
             if "class_name" in propagated_component:
                 found_type = CUSTOM_COMPONENTS_MAPPING.get(parent_field_identifier)
             else:
