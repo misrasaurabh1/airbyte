@@ -130,17 +130,3 @@ class ConnectorStateManager:
     @staticmethod
     def _is_per_stream_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return isinstance(state, List)
-
-    @staticmethod
-    def _extract_from_state_message(state: Optional[List[AirbyteStateMessage]]):
-        # Optimized extraction of state messages
-        if not state:
-            return None, None
-        if isinstance(state, list) and state and all(isinstance(s, AirbyteStateMessage) for s in state):
-            global_states = [s for s in state if s.type == AirbyteStateType.GLOBAL]
-            if global_states:
-                return global_states[0].shared_state, None
-            per_stream_states = [s for s in state if s.type == AirbyteStateType.STREAM]
-            return None, per_stream_states
-        else:
-            raise ValueError("Invalid state message provided.")
