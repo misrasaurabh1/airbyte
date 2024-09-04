@@ -151,10 +151,10 @@ def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
 
     inferred_type = get_inferred_type(value)
 
-    if not inferred_type:
+    if inferred_type is None:
         return False
 
-    return comparable_type_le(ComparableType(inferred_type), get_comparable_type(expected_type))
+    return ComparableType(inferred_type) <= get_comparable_type(expected_type)
 
 
 def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> bool:
@@ -179,8 +179,7 @@ def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> 
                 if not any(is_equal_or_narrower_type(value, e) for e in expected_type):
                     return False
             elif expected_type == "object":
-                if not isinstance(value, dict):
-                    return False
+                return isinstance(value, dict)
             elif expected_type == "array":
                 if not isinstance(value, list):
                     return False
@@ -245,8 +244,3 @@ def type_mapping_to_jsonschema(input_schema: Optional[Union[str, Mapping[str, st
         result_schema[col_name] = {"type": json_schema_type}
 
     return {"type": "object", "properties": result_schema}
-
-
-def comparable_type_le(type1, type2) -> bool:
-    # Assuming ComparableType has a method to compare types
-    return type1 <= type2
