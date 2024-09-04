@@ -2,7 +2,6 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
-from __future__ import annotations
 from dataclasses import InitVar, dataclass
 from typing import Any, Iterable, List, Mapping, Optional, Union
 
@@ -101,9 +100,3 @@ class ListPartitionRouter(PartitionRouter):
         ListPartitionRouter doesn't have parent streams
         """
         pass
-
-    def _get_root_property(self, start, attr):
-        node = start
-        while isinstance(node, StreamSlice):
-            node = getattr(node, attr)
-        return node
