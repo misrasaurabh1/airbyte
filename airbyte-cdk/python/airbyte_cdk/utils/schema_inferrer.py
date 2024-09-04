@@ -30,10 +30,8 @@ class NoRequiredObj(Object):
     """
 
     def to_schema(self) -> Mapping[str, Any]:
-        schema: Dict[str, Any] = super().to_schema()  # simplified the call to super
-        # Directly remove the "required" key if it exists
-        if "required" in schema:
-            del schema["required"]
+        schema: Dict[str, Any] = super().to_schema()
+        schema.pop("required", None)
         return schema
 
 
