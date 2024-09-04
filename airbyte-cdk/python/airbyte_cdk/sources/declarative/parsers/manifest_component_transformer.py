@@ -3,7 +3,6 @@
 #
 
 import copy
-import typing
 from typing import Any, Mapping
 
 PARAMETERS_STR = "$parameters"
@@ -89,7 +88,8 @@ class ManifestComponentTransformer:
         :param parent_parameters: The parameters set on parent components defined before the current component
         :return: A deep copy of the transformed component with types and parameters persisted to it
         """
-        propagated_component = dict(copy.deepcopy(declarative_component))
+        propagated_component = declarative_component.copy()
+
         if "type" not in propagated_component:
             # If the component has class_name we assume that this is a reference to a custom component. This is a slight change to
             # existing behavior because we originally allowed for either class or type to be specified. After the pydantic migration,
@@ -112,14 +112,14 @@ class ManifestComponentTransformer:
 
         # Combines parameters defined at the current level with parameters from parent components. Parameters at the current
         # level take precedence
-        current_parameters = dict(copy.deepcopy(parent_parameters))
+        current_parameters = parent_parameters.copy()
         component_parameters = propagated_component.pop(PARAMETERS_STR, {})
-        current_parameters = {**current_parameters, **component_parameters}
+        current_parameters.update(component_parameters)
 
         # Parameters should be applied to the current component fields with the existing field taking precedence over parameters if
         # both exist
         for parameter_key, parameter_value in current_parameters.items():
-            propagated_component[parameter_key] = propagated_component.get(parameter_key) or parameter_value
+            propagated_component.setdefault(parameter_key, parameter_value)
 
         for field_name, field_value in propagated_component.items():
             if isinstance(field_value, dict):
@@ -131,18 +131,19 @@ class ManifestComponentTransformer:
                 )
                 if excluded_parameter:
                     current_parameters[field_name] = excluded_parameter
-            elif isinstance(field_value, typing.List):
+            elif isinstance(field_value, list):
                 # We exclude propagating a parameter that matches the current field name because that would result in an infinite cycle
                 excluded_parameter = current_parameters.pop(field_name, None)
+                parent_type_field_identifier = f"{propagated_component.get('type')}.{field_name}"
                 for i, element in enumerate(field_value):
                     if isinstance(element, dict):
-                        parent_type_field_identifier = f"{propagated_component.get('type')}.{field_name}"
                         field_value[i] = self.propagate_types_and_parameters(parent_type_field_identifier, element, current_parameters)
                 if excluded_parameter:
                     current_parameters[field_name] = excluded_parameter
 
         if current_parameters:
             propagated_component[PARAMETERS_STR] = current_parameters
+
         return propagated_component
 
     @staticmethod
