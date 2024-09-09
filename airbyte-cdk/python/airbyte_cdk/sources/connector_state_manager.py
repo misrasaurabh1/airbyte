@@ -11,6 +11,11 @@ from airbyte_cdk.models import Type as MessageType
 
 
 class HashableStreamDescriptor(NamedTuple):
+    """
+    Helper NamedTuple that overrides the existing StreamDescriptor class that is auto generated from the Airbyte Protocol.
+    We use NamedTuple for improved hashing performance needed with AirbyteEntrypoint.handle_record_counts function.
+    This is only marked public because we use it outside for unit tests.
+    """
     name: str
     namespace: Optional[str]
 
