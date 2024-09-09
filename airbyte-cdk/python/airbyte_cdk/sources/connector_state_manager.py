@@ -3,23 +3,21 @@
 #
 
 import copy
-from dataclasses import dataclass
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, List, Mapping, MutableMapping, Optional, Tuple, Union, NamedTuple
 
-from airbyte_cdk.models import AirbyteMessage, AirbyteStateBlob, AirbyteStateMessage, AirbyteStateType, AirbyteStreamState, StreamDescriptor
+from airbyte_cdk.models import AirbyteMessage, AirbyteStateBlob, AirbyteStateMessage, AirbyteStateType, \
+    AirbyteStreamState, StreamDescriptor
 from airbyte_cdk.models import Type as MessageType
 
 
-@dataclass(frozen=True)
-class HashableStreamDescriptor:
+class HashableStreamDescriptor(NamedTuple):
     """
-    Helper class that overrides the existing StreamDescriptor class that is auto generated from the Airbyte Protocol and
-    freezes its fields so that it be used as a hash key. This is only marked public because we use it outside for unit tests.
+    Helper NamedTuple that overrides the existing StreamDescriptor class that is auto generated from the Airbyte Protocol.
+    We use NamedTuple for improved hashing performance needed with AirbyteEntrypoint.handle_record_counts function.
+    This is only marked public because we use it outside for unit tests.
     """
-
     name: str
-    namespace: Optional[str] = None
-
+    namespace: Optional[str]
 
 class ConnectorStateManager:
     """
