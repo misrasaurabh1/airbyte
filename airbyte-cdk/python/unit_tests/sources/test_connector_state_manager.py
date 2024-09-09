@@ -6,6 +6,7 @@ from contextlib import nullcontext as does_not_raise
 from typing import List
 
 import pytest
+
 from airbyte_cdk.models import (
     AirbyteMessage,
     AirbyteStateBlob,
@@ -16,7 +17,7 @@ from airbyte_cdk.models import (
     StreamDescriptor,
 )
 from airbyte_cdk.models import Type as MessageType
-from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, HashableStreamDescriptor
+from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 
 
 @pytest.mark.parametrize(
@@ -34,8 +35,8 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, H
                 },
             ],
             {
-                HashableStreamDescriptor(name="actors", namespace="public"): AirbyteStateBlob({"id": "mando_michael"}),
-                HashableStreamDescriptor(name="actresses", namespace="public"): AirbyteStateBlob({"id": "seehorn_rhea"}),
+                ("actors", "public"): AirbyteStateBlob({"id": "mando_michael"}),
+                ("actresses", "public"): AirbyteStateBlob({"id": "seehorn_rhea"}),
             },
             does_not_raise(),
             id="test_incoming_per_stream_state",
@@ -43,7 +44,7 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, H
         pytest.param([], {}, does_not_raise(), id="test_incoming_empty_stream_state"),
         pytest.param(
             [{"type": "STREAM", "stream": {"stream_descriptor": {"name": "actresses", "namespace": "public"}}}],
-            {HashableStreamDescriptor(name="actresses", namespace="public"): None},
+            {("actresses", "public"): None},
             does_not_raise(),
             id="test_stream_states_that_have_none_state_blob",
         ),
@@ -67,8 +68,8 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, H
                 },
             ],
             {
-                HashableStreamDescriptor(name="actors", namespace="public"): AirbyteStateBlob({"id": "mando_michael"}),
-                HashableStreamDescriptor(name="actresses", namespace="public"): AirbyteStateBlob({"id": "seehorn_rhea"}),
+                ("actors", "public"): AirbyteStateBlob({"id": "mando_michael"}),
+                ("actresses", "public"): AirbyteStateBlob({"id": "seehorn_rhea"}),
             },
             pytest.raises(ValueError),
             id="test_incoming_global_state_with_shared_state_throws_error",
@@ -85,7 +86,7 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, H
                 },
             ],
             {
-                HashableStreamDescriptor(name="actors", namespace="public"): AirbyteStateBlob({"id": "mando_michael"}),
+                ("actors", "public"): AirbyteStateBlob({"id": "mando_michael"}),
             },
             does_not_raise(),
             id="test_incoming_global_state_without_shared",
@@ -106,7 +107,7 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, H
                 },
             ],
             {
-                HashableStreamDescriptor(name="actors", namespace="public"): AirbyteStateBlob({"id": "mando_michael"}),
+                ("actors", "public"): AirbyteStateBlob({"id": "mando_michael"}),
             },
             does_not_raise(),
             id="test_incoming_global_state_with_none_shared",
@@ -122,7 +123,7 @@ from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager, H
                     },
                 },
             ],
-            {HashableStreamDescriptor(name="actresses", namespace="public"): None},
+            {("actresses", "public"): None},
             does_not_raise(),
             id="test_incoming_global_state_without_stream_state",
         ),
@@ -312,7 +313,7 @@ def test_update_state_for_stream(start_state, update_name, update_namespace, upd
 
     state_manager.update_state_for_stream(update_name, update_namespace, update_value)
 
-    assert state_manager.per_stream_states[HashableStreamDescriptor(name=update_name, namespace=update_namespace)] == AirbyteStateBlob(
+    assert state_manager.per_stream_states[(update_name, update_namespace)] == AirbyteStateBlob(
         update_value
     )
 
