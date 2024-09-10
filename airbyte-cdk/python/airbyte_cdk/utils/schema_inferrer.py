@@ -30,7 +30,7 @@ class NoRequiredObj(Object):
     """
 
     def to_schema(self) -> Mapping[str, Any]:
-        schema: Dict[str, Any] = super(NoRequiredObj, self).to_schema()
+        schema: Dict[str, Any] = super().to_schema()
         schema.pop("required", None)
         return schema
 
