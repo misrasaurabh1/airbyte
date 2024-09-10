@@ -6,9 +6,12 @@ import inspect
 import itertools
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Mapping as MappingABC
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, MutableMapping, Optional, Union
+
+from deprecated import deprecated
 
 import airbyte_cdk.sources.utils.casing as casing
 from airbyte_cdk.models import AirbyteMessage, AirbyteStream, ConfiguredAirbyteStream, DestinationSyncMode, SyncMode
@@ -24,12 +27,10 @@ from airbyte_cdk.sources.streams.checkpoint import (
     ResumableFullRefreshCheckpointReader,
 )
 from airbyte_cdk.sources.types import StreamSlice
-
 # list of all possible HTTP methods which can be used for sending of request bodies
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig, ResourceSchemaLoader
 from airbyte_cdk.sources.utils.slice_logger import DebugSliceLogger, SliceLogger
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
-from deprecated import deprecated
 
 # A stream's read method can return one of the following types:
 # Mapping[str, Any]: The content of an AirbyteRecordMessage
@@ -191,10 +192,10 @@ class Stream(ABC):
             )
             for record_data_or_message in records:
                 yield record_data_or_message
-                if isinstance(record_data_or_message, Mapping) or (
+                if isinstance(record_data_or_message, MappingABC) or (
                     hasattr(record_data_or_message, "type") and record_data_or_message.type == MessageType.RECORD
                 ):
-                    record_data = record_data_or_message if isinstance(record_data_or_message, Mapping) else record_data_or_message.record
+                    record_data = record_data_or_message if isinstance(record_data_or_message, MappingABC) else record_data_or_message.record
 
                     # Thanks I hate it. RFR fundamentally doesn't fit with the concept of the legacy Stream.get_updated_state()
                     # method because RFR streams rely on pagination as a cursor. Stream.get_updated_state() was designed to make
