@@ -1,15 +1,19 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
+import os
+
 from pydantic import FilePath
 
 
 def get_unit_test_folder(execution_folder: str) -> FilePath:
-    path = FilePath(execution_folder)
-    while path.name != "unit_tests":
-        if path.name == path.root or path.name == path.drive:
+    path = os.path.abspath(execution_folder)
+    while True:
+        if os.path.basename(path) == "unit_tests":
+            return FilePath(path)
+        new_path = os.path.dirname(path)
+        if new_path == path:
             raise ValueError(f"Could not find `unit_tests` folder as a parent of {execution_folder}")
-        path = path.parent
-    return path
+        path = new_path
 
 
 def read_resource_file_contents(resource: str, test_location: str) -> str:
