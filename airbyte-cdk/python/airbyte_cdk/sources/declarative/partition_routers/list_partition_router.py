@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from dataclasses import InitVar, dataclass
 from typing import Any, Iterable, List, Mapping, Optional, Union
 
@@ -82,11 +83,8 @@ class ListPartitionRouter(PartitionRouter):
         if self.request_option and self.request_option.inject_into == request_option_type and stream_slice:
             slice_value = stream_slice.get(self._cursor_field.eval(self.config))
             if slice_value:
-                return {self.request_option.field_name.eval(self.config): slice_value}  # type: ignore # field_name is always casted to InterpolatedString
-            else:
-                return {}
-        else:
-            return {}
+                return {self.request_option.field_name.eval(self.config): slice_value}
+        return {}
 
     def set_initial_state(self, stream_state: StreamState) -> None:
         """
