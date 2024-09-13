@@ -18,6 +18,7 @@ from airbyte_cdk.utils.airbyte_secrets_utils import add_to_secrets
 from requests.auth import AuthBase
 
 from ..exceptions import DefaultBackoffException
+from datetime import datetime, timezone
 
 logger = logging.getLogger("airbyte")
 _NOOP_MESSAGE_REPOSITORY = NoopMessageRepository()
@@ -66,7 +67,7 @@ class AbstractOauth2Authenticator(AuthBase):
 
     def token_has_expired(self) -> bool:
         """Returns True if the token is expired"""
-        return pendulum.now() > self.get_token_expiry_date()  # type: ignore # this is always a bool despite what mypy thinks
+        return datetime.now(timezone.utc) > self.get_token_expiry_date()
 
     def build_refresh_request_body(self) -> Mapping[str, Any]:
         """
