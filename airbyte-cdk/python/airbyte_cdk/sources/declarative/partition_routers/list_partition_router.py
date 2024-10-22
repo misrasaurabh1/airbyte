@@ -76,7 +76,8 @@ class ListPartitionRouter(PartitionRouter):
         return self._get_request_option(RequestOptionType.body_json, stream_slice)
 
     def stream_slices(self) -> Iterable[StreamSlice]:
-        return [StreamSlice(partition={self._cursor_field.eval(self.config): slice_value}, cursor_slice={}) for slice_value in self.values]
+        cursor_field = self._cursor_field.eval(self.config)
+        return [StreamSlice(partition={cursor_field: slice_value}, cursor_slice={}) for slice_value in self.values]
 
     def _get_request_option(self, request_option_type: RequestOptionType, stream_slice: Optional[StreamSlice]) -> Mapping[str, Any]:
         if self.request_option and self.request_option.inject_into == request_option_type and stream_slice:
