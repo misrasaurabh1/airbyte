@@ -123,10 +123,12 @@ class DefaultFileBasedCursor(AbstractFileBasedCursor):
     def _compute_start_time(self) -> datetime:
         if not self._file_to_datetime_history:
             return datetime.min
-        else:
-            earliest = min(self._file_to_datetime_history.values())
-            earliest_dt = datetime.strptime(earliest, self.DATE_TIME_FORMAT)
-            if self._is_history_full():
-                time_window = datetime.now() - self._time_window_if_history_is_full
-                earliest_dt = min(earliest_dt, time_window)
-            return earliest_dt
+
+        earliest = min(self._file_to_datetime_history.values())
+        earliest_dt = datetime.strptime(earliest, self.DATE_TIME_FORMAT)
+
+        if self._is_history_full():
+            time_window = datetime.now() - self._time_window_if_history_is_full
+            if earliest_dt > time_window:
+                return time_window
+        return earliest_dt
