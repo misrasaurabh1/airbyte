@@ -1,7 +1,6 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
-import concurrent
 import logging
 from queue import Queue
 from typing import Iterable, Iterator, List
@@ -19,6 +18,7 @@ from airbyte_cdk.sources.streams.concurrent.partitions.partition import Partitio
 from airbyte_cdk.sources.streams.concurrent.partitions.record import Record
 from airbyte_cdk.sources.streams.concurrent.partitions.types import PartitionCompleteSentinel, QueueItem
 from airbyte_cdk.sources.utils.slice_logger import DebugSliceLogger, SliceLogger
+from concurrent.futures import ThreadPoolExecutor
 
 
 class ConcurrentSource:
@@ -40,11 +40,11 @@ class ConcurrentSource:
         message_repository: MessageRepository,
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
     ) -> "ConcurrentSource":
-        is_single_threaded = initial_number_of_partitions_to_generate == 1 and num_workers == 1
-        too_many_generator = not is_single_threaded and initial_number_of_partitions_to_generate >= num_workers
-        assert not too_many_generator, "It is required to have more workers than threads generating partitions"
+        assert (
+            initial_number_of_partitions_to_generate < num_workers
+        ), "It is required to have more workers than threads generating partitions"
         threadpool = ThreadPoolManager(
-            concurrent.futures.ThreadPoolExecutor(max_workers=num_workers, thread_name_prefix="workerpool"),
+            ThreadPoolExecutor(max_workers=num_workers, thread_name_prefix="workerpool"),
             logger,
         )
         return ConcurrentSource(
