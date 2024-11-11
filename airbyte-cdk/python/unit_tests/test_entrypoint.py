@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 import freezegun
 import pytest
 import requests
+from orjson import orjson
+
 from airbyte_cdk import AirbyteEntrypoint
 from airbyte_cdk import entrypoint as entrypoint_module
 from airbyte_cdk.models import (
@@ -42,9 +44,7 @@ from airbyte_cdk.models import (
     Type,
 )
 from airbyte_cdk.sources import Source
-from airbyte_cdk.sources.connector_state_manager import HashableStreamDescriptor
 from airbyte_cdk.utils import AirbyteTracedException
-from orjson import orjson
 
 
 class MockSource(Source):
@@ -380,9 +380,9 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
     [
         pytest.param(
             AirbyteMessage(type=Type.RECORD, record=AirbyteRecordMessage(stream="customers", data={"id": "12345"}, emitted_at=1)),
-            {HashableStreamDescriptor(name="customers"): 100.0},
+            {("customers", None): 100.0},
             AirbyteMessage(type=Type.RECORD, record=AirbyteRecordMessage(stream="customers", data={"id": "12345"}, emitted_at=1)),
-            {HashableStreamDescriptor(name="customers"): 101.0},
+            {("customers", None): 101.0},
             id="test_handle_record_message",
         ),
         pytest.param(
@@ -395,7 +395,7 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     ),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers"): 100.0},
+            {("customers", None): 100.0},
             AirbyteMessage(
                 type=Type.STATE,
                 state=AirbyteStateMessage(
@@ -406,14 +406,14 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     sourceStats=AirbyteStateStats(recordCount=100.0),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers"): 0.0},
+            {("customers", None): 0.0},
             id="test_handle_state_message",
         ),
         pytest.param(
             AirbyteMessage(type=Type.RECORD, record=AirbyteRecordMessage(stream="customers", data={"id": "12345"}, emitted_at=1)),
             defaultdict(float),
             AirbyteMessage(type=Type.RECORD, record=AirbyteRecordMessage(stream="customers", data={"id": "12345"}, emitted_at=1)),
-            {HashableStreamDescriptor(name="customers"): 1.0},
+            {("customers", None): 1.0},
             id="test_handle_first_record_message",
         ),
         pytest.param(
@@ -427,7 +427,7 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     emitted_at=1,
                 ),
             ),
-            {HashableStreamDescriptor(name="customers"): 5.0},
+            {("customers", None): 5.0},
             AirbyteMessage(
                 type=Type.TRACE,
                 trace=AirbyteTraceMessage(
@@ -438,14 +438,14 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     emitted_at=1,
                 ),
             ),
-            {HashableStreamDescriptor(name="customers"): 5.0},
+            {("customers", None): 5.0},
             id="test_handle_other_message_type",
         ),
         pytest.param(
             AirbyteMessage(type=Type.RECORD, record=AirbyteRecordMessage(stream="others", data={"id": "12345"}, emitted_at=1)),
-            {HashableStreamDescriptor(name="customers"): 100.0, HashableStreamDescriptor(name="others"): 27.0},
+            {("customers", None): 100.0, ("others", None): 27.0},
             AirbyteMessage(type=Type.RECORD, record=AirbyteRecordMessage(stream="others", data={"id": "12345"}, emitted_at=1)),
-            {HashableStreamDescriptor(name="customers"): 100.0, HashableStreamDescriptor(name="others"): 28.0},
+            {("customers", None): 100.0, ("others", None): 28.0},
             id="test_handle_record_message_for_other_stream",
         ),
         pytest.param(
@@ -458,7 +458,7 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     ),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers"): 100.0, HashableStreamDescriptor(name="others"): 27.0},
+            {("customers", None): 100.0, ("others", None): 27.0},
             AirbyteMessage(
                 type=Type.STATE,
                 state=AirbyteStateMessage(
@@ -469,18 +469,18 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     sourceStats=AirbyteStateStats(recordCount=27.0),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers"): 100.0, HashableStreamDescriptor(name="others"): 0.0},
+            {("customers", None): 100.0, ("others", None): 0.0},
             id="test_handle_state_message_for_other_stream",
         ),
         pytest.param(
             AirbyteMessage(
                 type=Type.RECORD, record=AirbyteRecordMessage(stream="customers", namespace="public", data={"id": "12345"}, emitted_at=1)
             ),
-            {HashableStreamDescriptor(name="customers", namespace="public"): 100.0},
+            {("customers","public"): 100.0},
             AirbyteMessage(
                 type=Type.RECORD, record=AirbyteRecordMessage(stream="customers", namespace="public", data={"id": "12345"}, emitted_at=1)
             ),
-            {HashableStreamDescriptor(name="customers", namespace="public"): 101.0},
+            {("customers", "public"): 101.0},
             id="test_handle_record_message_with_descriptor",
         ),
         pytest.param(
@@ -494,7 +494,7 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     ),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers", namespace="public"): 100.0},
+            {("customers", "public"): 100.0},
             AirbyteMessage(
                 type=Type.STATE,
                 state=AirbyteStateMessage(
@@ -506,7 +506,7 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     sourceStats=AirbyteStateStats(recordCount=100.0),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers", namespace="public"): 0.0},
+            {("customers", "public"): 0.0},
             id="test_handle_state_message_with_descriptor",
         ),
         pytest.param(
@@ -520,7 +520,7 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                     ),
                 ),
             ),
-            {HashableStreamDescriptor(name="customers", namespace="public"): 100.0},
+            {("customers", "public"): 100.0},
             AirbyteMessage(
                 type=Type.STATE,
                 state=AirbyteStateMessage(
@@ -533,8 +533,8 @@ def test_filter_internal_requests(deployment_mode, url, expected_error):
                 ),
             ),
             {
-                HashableStreamDescriptor(name="customers", namespace="public"): 100.0,
-                HashableStreamDescriptor(name="others", namespace="public"): 0.0,
+                ("customers", "public"): 100.0,
+                ("others", "public"): 0.0,
             },
             id="test_handle_state_message_no_records",
         ),

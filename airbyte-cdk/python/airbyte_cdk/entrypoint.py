@@ -16,6 +16,9 @@ from typing import Any, DefaultDict, Iterable, List, Mapping, Optional
 from urllib.parse import urlparse
 
 import requests
+from orjson import orjson
+from requests import PreparedRequest, Response, Session
+
 from airbyte_cdk.connector import TConfig
 from airbyte_cdk.exception_handler import init_uncaught_exception_handler
 from airbyte_cdk.logger import init_logger
@@ -30,7 +33,6 @@ from airbyte_cdk.models import (  # type: ignore [attr-defined]
     Type,
 )
 from airbyte_cdk.sources import Source
-from airbyte_cdk.sources.connector_state_manager import HashableStreamDescriptor
 from airbyte_cdk.sources.utils.schema_helpers import check_config_against_spec_or_exit, split_config
 
 # from airbyte_cdk.utils import PrintBuffer, is_cloud_environment, message_utils  # add PrintBuffer back once fixed
@@ -38,8 +40,6 @@ from airbyte_cdk.utils import is_cloud_environment, message_utils
 from airbyte_cdk.utils.airbyte_secrets_utils import get_secrets, update_secrets
 from airbyte_cdk.utils.constants import ENV_REQUEST_CACHE_PATH
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
-from orjson import orjson
-from requests import PreparedRequest, Response, Session
 
 logger = init_logger("airbyte")
 
@@ -187,17 +187,17 @@ class AirbyteEntrypoint(object):
             self.validate_connection(source_spec, config)
 
         # The Airbyte protocol dictates that counts be expressed as float/double to better protect against integer overflows
-        stream_message_counter: DefaultDict[HashableStreamDescriptor, float] = defaultdict(float)
+        stream_message_counter: DefaultDict[tuple[str, str | None], float] = defaultdict(float)
         for message in self.source.read(self.logger, config, catalog, state):
             yield self.handle_record_counts(message, stream_message_counter)
         for message in self._emit_queued_messages(self.source):
             yield self.handle_record_counts(message, stream_message_counter)
 
     @staticmethod
-    def handle_record_counts(message: AirbyteMessage, stream_message_count: DefaultDict[HashableStreamDescriptor, float]) -> AirbyteMessage:
+    def handle_record_counts(message: AirbyteMessage, stream_message_count: DefaultDict[tuple[str, str | None], float]) -> AirbyteMessage:
         match message.type:
             case Type.RECORD:
-                stream_message_count[HashableStreamDescriptor(name=message.record.stream, namespace=message.record.namespace)] += 1.0  # type: ignore[union-attr] # record has `stream` and `namespace`
+                stream_message_count[(message.record.stream, message.record.namespace)] += 1.0  # type: ignore[union-attr] # record has `stream` and `namespace`
             case Type.STATE:
                 stream_descriptor = message_utils.get_stream_descriptor(message)
 
