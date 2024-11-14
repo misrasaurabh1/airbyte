@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from dataclasses import InitVar, dataclass
 from typing import Any, Mapping, Optional, Union
 
@@ -44,12 +45,10 @@ class PageIncrement(PaginationStrategy):
         return None
 
     def next_page_token(self, response: requests.Response, last_page_size: int, last_record: Optional[Record]) -> Optional[Any]:
-        # Stop paginating when there are fewer records than the page size or the current page has no records
-        if (self._page_size and last_page_size < self._page_size) or last_page_size == 0:
+        if last_page_size == 0 or (self._page_size and last_page_size < self._page_size):
             return None
-        else:
-            self._page += 1
-            return self._page
+        self._page += 1
+        return self._page
 
     def reset(self, reset_value: Optional[Any] = None) -> None:
         if reset_value is None:
