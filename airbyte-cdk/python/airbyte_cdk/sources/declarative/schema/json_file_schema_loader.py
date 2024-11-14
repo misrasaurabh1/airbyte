@@ -2,8 +2,6 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
-import json
-import pkgutil
 import sys
 from dataclasses import InitVar, dataclass, field
 from typing import Any, Mapping, Tuple, Union
@@ -12,6 +10,7 @@ from airbyte_cdk.sources.declarative.interpolation.interpolated_string import In
 from airbyte_cdk.sources.declarative.schema.schema_loader import SchemaLoader
 from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
+import logging
 
 
 def _default_file_path() -> str:
@@ -51,20 +50,17 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         self.file_path = InterpolatedString.create(self.file_path, parameters=parameters)
 
     def get_json_schema(self) -> Mapping[str, Any]:
-        # todo: It is worth revisiting if we can replace file_path with just file_name if every schema is in the /schemas directory
-        # this would require that we find a creative solution to store or retrieve source_name in here since the files are mounted there
-        json_schema_path = self._get_json_filepath()
-        resource, schema_path = self.extract_resource_and_schema_path(json_schema_path)
-        raw_json_file = pkgutil.get_data(resource, schema_path)
+        """
+        Attempts to retrieve a schema from the default filepath location or returns the empty schema if a schema cannot be found.
 
-        if not raw_json_file:
-            raise IOError(f"Cannot find file {json_schema_path}")
+        :return: The empty schema
+        """
         try:
-            raw_schema = json.loads(raw_json_file)
-        except ValueError as err:
-            raise RuntimeError(f"Invalid JSON file format for file {json_schema_path}") from err
-        self.package_name = resource
-        return self._resolve_schema_references(raw_schema)
+            return self.default_loader.get_json_schema()
+        except OSError:
+            stream_name = self._parameters.get("name", "")
+            logging.info(f"Could not find schema for stream {stream_name}, defaulting to the empty schema")
+            return {}
 
     def _get_json_filepath(self) -> Any:
         return self.file_path.eval(self.config)  # type: ignore # file_path is always cast to an interpolated string
