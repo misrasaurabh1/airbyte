@@ -30,6 +30,7 @@ from airbyte_cdk.sources.utils.schema_helpers import InternalConfig, ResourceSch
 from airbyte_cdk.sources.utils.slice_logger import DebugSliceLogger, SliceLogger
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 from deprecated import deprecated
+from airbyte_cdk.sources.utils.casing import camel_to_snake
 
 # A stream's read method can return one of the following types:
 # Mapping[str, Any]: The content of an AirbyteRecordMessage
@@ -136,7 +137,7 @@ class Stream(ABC):
         """
         :return: Stream name. By default this is the implementing class name, but it can be overridden as needed.
         """
-        return casing.camel_to_snake(self.__class__.__name__)
+        return camel_to_snake(self.__class__.__name__)
 
     def get_error_display_message(self, exception: BaseException) -> Optional[str]:
         """
