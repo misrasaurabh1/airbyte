@@ -39,21 +39,13 @@ class InterpolatedRequestInputProvider:
         valid_value_types: Optional[Tuple[Type[Any], ...]] = None,
     ) -> Mapping[str, Any]:
         """
-        Returns the request inputs to set on an outgoing HTTP request
-
-        :param stream_state: The stream state
-        :param stream_slice: The stream slice
-        :param next_page_token: The pagination token
-        :param valid_key_types: A tuple of types that the interpolator should allow
-        :param valid_value_types: A tuple of types that the interpolator should allow
-        :return: The request inputs to set on an outgoing HTTP request
+        Returns the request inputs to set on an outgoing HTTP request.
         """
         kwargs = {"stream_state": stream_state, "stream_slice": stream_slice, "next_page_token": next_page_token}
-        interpolated_value = self._interpolator.eval(  # type: ignore # self._interpolator is always initialized with a value and will not be None
+        interpolated_value = self._interpolator.eval(
             self.config, valid_key_types=valid_key_types, valid_value_types=valid_value_types, **kwargs
         )
 
-        if isinstance(interpolated_value, dict):
-            non_null_tokens = {k: v for k, v in interpolated_value.items() if v is not None}
-            return non_null_tokens
-        return interpolated_value  # type: ignore[no-any-return]
+        return (
+            {k: v for k, v in interpolated_value.items() if v is not None} if isinstance(interpolated_value, dict) else interpolated_value
+        )
