@@ -36,11 +36,17 @@ class InterpolatedMapping:
         """
         valid_key_types = additional_parameters.pop("valid_key_types", (str,))
         valid_value_types = additional_parameters.pop("valid_value_types", None)
+
+        interpolation_eval = self._interpolation.eval
+        parameters = self._parameters
+        eval_method = self._eval
+        mapping_items = self.mapping.items()
+
         return {
-            self._interpolation.eval(
-                name, config, valid_types=valid_key_types, parameters=self._parameters, **additional_parameters
-            ): self._eval(value, config, valid_types=valid_value_types, **additional_parameters)
-            for name, value in self.mapping.items()
+            interpolation_eval(name, config, valid_types=valid_key_types, parameters=parameters, **additional_parameters): eval_method(
+                value, config, valid_types=valid_value_types, **additional_parameters
+            )
+            for name, value in mapping_items
         }
 
     def _eval(self, value: str, config: Config, **kwargs: Any) -> Any:
