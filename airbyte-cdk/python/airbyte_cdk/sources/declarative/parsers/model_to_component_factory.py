@@ -172,6 +172,7 @@ from airbyte_cdk.sources.types import Config
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 from isodate import parse_duration
 from pydantic.v1 import BaseModel
+from airbyte_cdk.sources.declarative.interpolation.interpolated_string import InterpolatedString
 
 ComponentDefinition = Mapping[str, Any]
 
@@ -361,9 +362,11 @@ class ModelToComponentFactory:
             )
         )
         return ApiKeyAuthenticator(
-            token_provider=token_provider
-            if token_provider is not None
-            else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {}),
+            token_provider=(
+                token_provider
+                if token_provider is not None
+                else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {})
+            ),
             request_option=request_option,
             config=config,
             parameters=model.parameters or {},
@@ -431,9 +434,11 @@ class ModelToComponentFactory:
         if token_provider is not None and model.api_token != "":
             raise ValueError("If token_provider is set, api_token is ignored and has to be set to empty string.")
         return BearerAuthenticator(
-            token_provider=token_provider
-            if token_provider is not None
-            else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {}),
+            token_provider=(
+                token_provider
+                if token_provider is not None
+                else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {})
+            ),
             config=config,
             parameters=model.parameters or {},
         )
@@ -468,17 +473,11 @@ class ModelToComponentFactory:
     def create_cursor_pagination(
         self, model: CursorPaginationModel, config: Config, decoder: Decoder, **kwargs: Any
     ) -> CursorPaginationStrategy:
-        if isinstance(decoder, PaginationDecoderDecorator):
-            if not isinstance(decoder.decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(
-                    f"Provided decoder of {type(decoder.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
-                )
-            decoder_to_use = decoder
-        else:
-            if not isinstance(decoder, (JsonDecoder, XmlDecoder)):
-                raise ValueError(f"Provided decoder of {type(decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead.")
-            decoder_to_use = PaginationDecoderDecorator(decoder=decoder)
-
+        decoder_to_use = decoder if isinstance(decoder, PaginationDecoderDecorator) else PaginationDecoderDecorator(decoder)
+        if not isinstance(decoder_to_use.decoder, (JsonDecoder, XmlDecoder)):
+            raise ValueError(
+                f"Provided decoder of {type(decoder_to_use.decoder)=} is not supported. Please set JsonDecoder or XmlDecoder instead."
+            )
         return CursorPaginationStrategy(
             cursor_value=model.cursor_value,
             decoder=decoder_to_use,
@@ -1355,9 +1354,11 @@ class ModelToComponentFactory:
             ),
             primary_key=None,
             name=job_download_components_name,
-            paginator=self._create_component_from_model(model=model.download_paginator, decoder=decoder, config=config, url_base="")
-            if model.download_paginator
-            else NoPagination(parameters={}),
+            paginator=(
+                self._create_component_from_model(model=model.download_paginator, decoder=decoder, config=config, url_base="")
+                if model.download_paginator
+                else NoPagination(parameters={})
+            ),
             config=config,
             parameters={},
         )
