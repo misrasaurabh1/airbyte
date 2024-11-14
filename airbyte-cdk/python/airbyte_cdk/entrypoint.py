@@ -60,33 +60,34 @@ class AirbyteEntrypoint(object):
 
     @staticmethod
     def parse_args(args: List[str]) -> argparse.Namespace:
-        # set up parent parsers
+        # set up parsers
         parent_parser = argparse.ArgumentParser(add_help=False)
         parent_parser.add_argument("--debug", action="store_true", help="enables detailed debug logs related to the sync")
         main_parser = argparse.ArgumentParser()
         subparsers = main_parser.add_subparsers(title="commands", dest="command")
+
+        # create a common function to add config argument
+        def add_config_argument(parser):
+            parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
 
         # spec
         subparsers.add_parser("spec", help="outputs the json configuration specification", parents=[parent_parser])
 
         # check
         check_parser = subparsers.add_parser("check", help="checks the config can be used to connect", parents=[parent_parser])
-        required_check_parser = check_parser.add_argument_group("required named arguments")
-        required_check_parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
+        add_config_argument(check_parser.add_argument_group("required named arguments"))
 
         # discover
         discover_parser = subparsers.add_parser(
             "discover", help="outputs a catalog describing the source's schema", parents=[parent_parser]
         )
-        required_discover_parser = discover_parser.add_argument_group("required named arguments")
-        required_discover_parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
+        add_config_argument(discover_parser.add_argument_group("required named arguments"))
 
         # read
         read_parser = subparsers.add_parser("read", help="reads the source and outputs messages to STDOUT", parents=[parent_parser])
-
         read_parser.add_argument("--state", type=str, required=False, help="path to the json-encoded state file")
         required_read_parser = read_parser.add_argument_group("required named arguments")
-        required_read_parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
+        add_config_argument(required_read_parser)
         required_read_parser.add_argument(
             "--catalog", type=str, required=True, help="path to the catalog used to determine which data to read"
         )
@@ -230,9 +231,7 @@ class AirbyteEntrypoint(object):
     @classmethod
     def extract_state(cls, args: List[str]) -> Optional[Any]:
         parsed_args = cls.parse_args(args)
-        if hasattr(parsed_args, "state"):
-            return parsed_args.state
-        return None
+        return getattr(parsed_args, "state", None)
 
     @classmethod
     def extract_catalog(cls, args: List[str]) -> Optional[Any]:
