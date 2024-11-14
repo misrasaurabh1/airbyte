@@ -96,6 +96,9 @@ class ResumableFullRefreshCursor(DeclarativeCursor):
     ) -> Mapping[str, Any]:
         return {}
 
+    def __init__(self, parameters: Mapping[str, Any]) -> None:
+        self._cursor = {}
+
 
 @dataclass
 class ChildPartitionResumableFullRefreshCursor(ResumableFullRefreshCursor):
