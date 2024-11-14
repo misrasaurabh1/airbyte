@@ -294,12 +294,12 @@ class Stream(ABC):
         # If we can offer incremental we always should. RFR is always less reliable than incremental which uses a real cursor value
         if self.supports_incremental:
             stream.source_defined_cursor = self.source_defined_cursor
-            stream.supported_sync_modes.append(SyncMode.incremental)  # type: ignore
             stream.default_cursor_field = self._wrapped_cursor_field()
+            stream.supported_sync_modes.append(SyncMode.incremental)  # type: ignore
 
-        keys = Stream._wrapped_primary_key(self.primary_key)
-        if keys and len(keys) > 0:
-            stream.source_defined_primary_key = keys
+        primary_keys = self.primary_key if isinstance(self.primary_key, list) else [self.primary_key]
+        if primary_keys and any(primary_keys):
+            stream.source_defined_primary_key = Stream._wrapped_primary_key(primary_keys)
 
         return stream
 
