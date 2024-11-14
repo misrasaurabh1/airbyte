@@ -273,35 +273,29 @@ def _init_internal_request_filter() -> None:
     wrapped_fn = Session.send
 
     @wraps(wrapped_fn)
-    def filtered_send(self: Any, request: PreparedRequest, **kwargs: Any) -> Response:
+    def filtered_send(self: Session, request: PreparedRequest, **kwargs: Any) -> Response:
         parsed_url = urlparse(request.url)
 
         if parsed_url.scheme not in VALID_URL_SCHEMES:
             raise requests.exceptions.InvalidSchema(
-                "Invalid Protocol Scheme: The endpoint that data is being requested from is using an invalid or insecure "
-                + f"protocol {parsed_url.scheme!r}. Valid protocol schemes: {','.join(VALID_URL_SCHEMES)}"
+                f"Invalid Protocol Scheme: The endpoint that data is being requested from is using an invalid or insecure "
+                f"protocol {parsed_url.scheme!r}. Valid protocol schemes: {','.join(VALID_URL_SCHEMES)}"
             )
 
         if not parsed_url.hostname:
             raise requests.exceptions.InvalidURL("Invalid URL specified: The endpoint that data is being requested from is not a valid URL")
 
-        try:
-            is_private = _is_private_url(parsed_url.hostname, parsed_url.port)  # type: ignore [arg-type]
-            if is_private:
-                raise AirbyteTracedException(
-                    internal_message=f"Invalid URL endpoint: `{parsed_url.hostname!r}` belongs to a private network",
-                    failure_type=FailureType.config_error,
-                    message="Invalid URL endpoint: The endpoint that data is being requested from belongs to a private network. Source connectors only support requesting data from public API endpoints.",
-                )
-        except socket.gaierror as exception:
-            # This is a special case where the developer specifies an IP address string that is not formatted correctly like trailing
-            # whitespace which will fail the socket IP lookup. This only happens when using IP addresses and not text hostnames.
-            # Knowing that this is a request using the requests library, we will mock the exception without calling the lib
-            raise requests.exceptions.InvalidURL(f"Invalid URL {parsed_url}: {exception}")
+        is_private = _is_private_url(parsed_url.hostname, parsed_url.port)
+        if is_private:
+            raise AirbyteTracedException(
+                internal_message=f"Invalid URL endpoint: `{parsed_url.hostname!r}` belongs to a private network",
+                failure_type=FailureType.config_error,
+                message="Invalid URL endpoint: The endpoint that data is being requested from belongs to a private network. Source connectors only support requesting data from public API endpoints.",
+            )
 
         return wrapped_fn(self, request, **kwargs)
 
-    Session.send = filtered_send  # type: ignore [method-assign]
+    Session.send = filtered_send
 
 
 def _is_private_url(hostname: str, port: int) -> bool:
@@ -332,3 +326,15 @@ def main() -> None:
         raise Exception("Source implementation provided does not implement Source class!")
 
     launch(source, sys.argv[1:])
+
+
+def _is_private_url(hostname: str, port: int = None) -> bool:
+    try:
+        addr_info = socket.getaddrinfo(hostname, port, socket.AF_INET, socket.SOCK_STREAM)
+        for family, _, _, _, sockaddr in addr_info:
+            ip_address = sockaddr[0]
+            if ip_address.startswith("10.") or ip_address.startswith("172.") or ip_address.startswith("192.168."):
+                return True
+        return False
+    except socket.gaierror:
+        return False
