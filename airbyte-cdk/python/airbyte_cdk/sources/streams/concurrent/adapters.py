@@ -297,6 +297,10 @@ class StreamPartition(Partition):
     def __repr__(self) -> str:
         return f"StreamPartition({self._stream.name}, {self._slice})"
 
+    def default(self, o):
+        # Implement encoding logic if needed
+        return super().default(o)
+
 
 class StreamPartitionGenerator(PartitionGenerator):
     """
