@@ -7,7 +7,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from functools import partial
+from functools import lru_cache, partial
 from io import IOBase
 from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Set, Tuple
 from uuid import uuid4
@@ -165,9 +165,11 @@ class CsvParser(FileTypeParser):
         #  sources will likely require one. Rather than modify the interface now we can wait until the real use case
         config_format = _extract_format(config)
         type_inferrer_by_field: Dict[str, _TypeInferrer] = defaultdict(
-            lambda: _JsonTypeInferrer(config_format.true_values, config_format.false_values, config_format.null_values)
-            if config_format.inference_type != InferenceType.NONE
-            else _DisabledTypeInferrer()
+            lambda: (
+                _JsonTypeInferrer(config_format.true_values, config_format.false_values, config_format.null_values)
+                if config_format.inference_type != InferenceType.NONE
+                else _DisabledTypeInferrer()
+            )
         )
         data_generator = self._csv_reader.read_data(config, file, stream_reader, logger, self.file_read_mode)
         read_bytes = 0
@@ -444,6 +446,7 @@ def _value_to_list(value: str) -> List[Any]:
     raise ValueError(f"Value {parsed_value} is not a valid list value")
 
 
+@lru_cache(maxsize=None)
 def _value_to_python_type(value: str, python_type: type) -> Any:
     return python_type(value)
 
