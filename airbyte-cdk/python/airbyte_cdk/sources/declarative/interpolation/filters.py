@@ -40,18 +40,17 @@ def hash(value: Any, hash_type: str = "md5", salt: Optional[str] = None) -> str:
                    is different from the hash created for that value on other systems.
       :return: computed hash as a hexadecimal string
     """
-    hash_func = getattr(hashlib, hash_type, None)
+    try:
+        hash_func = hashlib.new(hash_type)
+    except ValueError:
+        raise AttributeError(f"No hashing function named {hash_type}")
 
-    if hash_func:
-        hash_obj = hash_func()
-        hash_obj.update(str(value).encode("utf-8"))
-        if salt:
-            hash_obj.update(str(salt).encode("utf-8"))
-        computed_hash: str = hash_obj.hexdigest()
-    else:
-        raise AttributeError("No hashing function named {hname}".format(hname=hash_type))
+    to_hash = str(value).encode("utf-8")
+    if salt:
+        to_hash += str(salt).encode("utf-8")
 
-    return computed_hash
+    hash_func.update(to_hash)
+    return hash_func.hexdigest()
 
 
 def base64encode(value: str) -> str:
