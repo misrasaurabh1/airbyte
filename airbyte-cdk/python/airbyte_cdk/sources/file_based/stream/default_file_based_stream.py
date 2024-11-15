@@ -32,7 +32,6 @@ from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 
 
 class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
-
     """
     The default file-based stream.
     """
@@ -195,44 +194,38 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
             return self.config.get_input_schema()  # type: ignore
         elif self.config.schemaless:
             return schemaless_schema
-        else:
-            files = self.list_files()
-            first_n_files = len(files)
 
-            if self.config.recent_n_files_to_read_for_schema_discovery:
-                self.logger.info(
-                    msg=(
-                        f"Only first {self.config.recent_n_files_to_read_for_schema_discovery} files will be used to infer schema "
-                        f"for stream {self.name} due to limitation in config."
-                    )
-                )
-                first_n_files = self.config.recent_n_files_to_read_for_schema_discovery
-
-        if first_n_files == 0:
-            self.logger.warning(msg=f"No files were identified in the stream {self.name}. Setting default schema for the stream.")
+        files = self.list_files()
+        if not files:
+            self.logger.warning(f"No files were identified in the stream {self.name}. Defaulting schema to schemaless.")
             return schemaless_schema
 
-        max_n_files_for_schema_inference = self._discovery_policy.get_max_n_files_for_schema_inference(self.get_parser())
+        first_n_files = len(files)
+        if self.config.recent_n_files_to_read_for_schema_discovery:
+            self.logger.info(
+                f"Using first {self.config.recent_n_files_to_read_for_schema_discovery} files for schema inference "
+                f"for stream {self.name}."
+            )
+            first_n_files = self.config.recent_n_files_to_read_for_schema_discovery
 
+        max_n_files_for_schema_inference = self._discovery_policy.get_max_n_files_for_schema_inference(self.get_parser())
         if first_n_files > max_n_files_for_schema_inference:
-            # Use the most recent files for schema inference, so we pick up schema changes during discovery.
-            self.logger.warning(msg=f"Refusing to infer schema for {first_n_files} files; using {max_n_files_for_schema_inference} files.")
+            self.logger.warning(
+                f"Too many files to infer schema ({first_n_files}); using top {max_n_files_for_schema_inference} most recently modified files."
+            )
             first_n_files = max_n_files_for_schema_inference
 
-        files = sorted(files, key=lambda x: x.last_modified, reverse=True)[:first_n_files]
-
-        inferred_schema = self.infer_schema(files)
+        sorted_files = sorted(files, key=lambda x: x.last_modified, reverse=True)
+        inferred_schema = self.infer_schema(sorted_files[:first_n_files])
 
         if not inferred_schema:
             raise InvalidSchemaError(
                 FileBasedSourceError.INVALID_SCHEMA_ERROR,
-                details=f"Empty schema. Please check that the files are valid for format {self.config.format}",
+                details=f"Empty schema. Verify that the files are valid for format {self.config.format}",
                 stream=self.name,
             )
 
-        schema = {"type": "object", "properties": inferred_schema}
-
-        return schema
+        return {"type": "object", "properties": inferred_schema}
 
     def get_files(self) -> Iterable[RemoteFile]:
         """
@@ -243,8 +236,8 @@ class DefaultFileBasedStream(AbstractFileBasedStream, IncrementalMixin):
     def infer_schema(self, files: List[RemoteFile]) -> Mapping[str, Any]:
         loop = asyncio.get_event_loop()
         schema = loop.run_until_complete(self._infer_schema(files))
-        # as infer schema returns a Mapping that is assumed to be immutable, we need to create a deepcopy to avoid modifying the reference
-        return self._fill_nulls(deepcopy(schema))
+        # Deep copy to avoid modifying the reference
+        return self._fill_nulls(schema.copy())
 
     @staticmethod
     def _fill_nulls(schema: Mapping[str, Any]) -> Mapping[str, Any]:
