@@ -40,19 +40,14 @@ class ResponseToFileExtractor(RecordExtractor):
         Returns:
             str: The encoding of the response.
         """
-
         content_type = headers.get("content-type")
-
         if not content_type:
             return DEFAULT_ENCODING
 
         content_type, params = requests.utils.parse_header_links(content_type)
+        return params.get("charset", DEFAULT_ENCODING).strip("'\"")  # type: ignore
 
-        if "charset" in params:
-            return params["charset"].strip("'\"")  # type: ignore  # we assume headers are returned as str
-
-        return DEFAULT_ENCODING
-
+    @staticmethod
     def _filter_null_bytes(self, b: bytes) -> bytes:
         """
         Filter out null bytes from a bytes object.
@@ -65,11 +60,7 @@ class ResponseToFileExtractor(RecordExtractor):
         Referenced Issue:
             https://github.com/airbytehq/airbyte/issues/8300
         """
-
-        res = b.replace(b"\x00", b"")
-        if len(res) < len(b):
-            self.logger.warning("Filter 'null' bytes from string, size reduced %d -> %d chars", len(b), len(res))
-        return res
+        return b.replace(b"\x00", b"")
 
     def _save_to_file(self, response: requests.Response) -> Tuple[str, str]:
         """
@@ -84,29 +75,29 @@ class ResponseToFileExtractor(RecordExtractor):
         Raises:
             ValueError: If the temporary file does not exist after saving the binary data.
         """
-        # set filepath for binary data from response
         decompressor = zlib.decompressobj(zlib.MAX_WBITS | 32)
-        needs_decompression = True  # we will assume at first that the response is compressed and change the flag if not
+        needs_decompression = True
 
         tmp_file = str(uuid.uuid4())
-        with closing(response) as response, open(tmp_file, "wb") as data_file:
-            response_encoding = self._get_response_encoding(dict(response.headers or {}))
+        with closing(response), open(tmp_file, "wb") as data_file:
+            response_headers = dict(response.headers)
+            response_encoding = self._get_response_encoding(response_headers)
+            filter_null_bytes = self._filter_null_bytes
+
             for chunk in response.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 try:
                     if needs_decompression:
                         data_file.write(decompressor.decompress(chunk))
-                        needs_decompression = True
                     else:
-                        data_file.write(self._filter_null_bytes(chunk))
+                        data_file.write(filter_null_bytes(chunk))
                 except zlib.error:
-                    data_file.write(self._filter_null_bytes(chunk))
+                    data_file.write(filter_null_bytes(chunk))
                     needs_decompression = False
 
-        # check the file exists
         if os.path.isfile(tmp_file):
             return tmp_file, response_encoding
         else:
-            raise ValueError(f"The IO/Error occured while verifying binary data. Tmp file {tmp_file} doesn't exist.")
+            raise ValueError(f"The IO/Error occurred while verifying binary data. Tmp file {tmp_file} doesn't exist.")
 
     def _read_with_chunks(self, path: str, file_encoding: str, chunk_size: int = 100) -> Iterable[Mapping[str, Any]]:
         """
