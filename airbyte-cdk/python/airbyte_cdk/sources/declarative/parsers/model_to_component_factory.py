@@ -361,9 +361,11 @@ class ModelToComponentFactory:
             )
         )
         return ApiKeyAuthenticator(
-            token_provider=token_provider
-            if token_provider is not None
-            else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {}),
+            token_provider=(
+                token_provider
+                if token_provider is not None
+                else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {})
+            ),
             request_option=request_option,
             config=config,
             parameters=model.parameters or {},
@@ -431,9 +433,11 @@ class ModelToComponentFactory:
         if token_provider is not None and model.api_token != "":
             raise ValueError("If token_provider is set, api_token is ignored and has to be set to empty string.")
         return BearerAuthenticator(
-            token_provider=token_provider
-            if token_provider is not None
-            else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {}),
+            token_provider=(
+                token_provider
+                if token_provider is not None
+                else InterpolatedStringTokenProvider(api_token=model.api_token or "", config=config, parameters=model.parameters or {})
+            ),
             config=config,
             parameters=model.parameters or {},
         )
@@ -1287,29 +1291,26 @@ class ModelToComponentFactory:
         api_status_to_cdk_status = {}
         for cdk_status, api_statuses in model.dict().items():
             if cdk_status == "type":
-                # This is an element of the dict because of the typing of the CDK but it is not a CDK status
                 continue
-
+            job_status = self._get_async_job_status(cdk_status)
             for status in api_statuses:
                 if status in api_status_to_cdk_status:
                     raise ValueError(
                         f"API status {status} is already set for CDK status {cdk_status}. Please ensure API statuses are only provided once"
                     )
-                api_status_to_cdk_status[status] = self._get_async_job_status(cdk_status)
+                api_status_to_cdk_status[status] = job_status
         return api_status_to_cdk_status
 
     def _get_async_job_status(self, status: str) -> AsyncJobStatus:
-        match status:
-            case "running":
-                return AsyncJobStatus.RUNNING
-            case "completed":
-                return AsyncJobStatus.COMPLETED
-            case "failed":
-                return AsyncJobStatus.FAILED
-            case "timeout":
-                return AsyncJobStatus.TIMED_OUT
-            case _:
-                raise ValueError(f"Unsupported CDK status {status}")
+        status_map = {
+            "running": AsyncJobStatus.RUNNING,
+            "completed": AsyncJobStatus.COMPLETED,
+            "failed": AsyncJobStatus.FAILED,
+            "timeout": AsyncJobStatus.TIMED_OUT,
+        }
+        if status not in status_map:
+            raise ValueError(f"Unsupported CDK status {status}")
+        return status_map[status]
 
     def create_async_retriever(
         self,
@@ -1355,9 +1356,11 @@ class ModelToComponentFactory:
             ),
             primary_key=None,
             name=job_download_components_name,
-            paginator=self._create_component_from_model(model=model.download_paginator, decoder=decoder, config=config, url_base="")
-            if model.download_paginator
-            else NoPagination(parameters={}),
+            paginator=(
+                self._create_component_from_model(model=model.download_paginator, decoder=decoder, config=config, url_base="")
+                if model.download_paginator
+                else NoPagination(parameters={})
+            ),
             config=config,
             parameters={},
         )
