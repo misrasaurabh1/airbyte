@@ -16,10 +16,11 @@ def format_exception(exception: Exception) -> str:
 def create_chunks(iterable: Iterable[Any], batch_size: int) -> Iterator[Tuple[Any, ...]]:
     """A helper function to break an iterable into chunks of size batch_size."""
     it = iter(iterable)
-    chunk = tuple(itertools.islice(it, batch_size))
-    while chunk:
-        yield chunk
+    while True:
         chunk = tuple(itertools.islice(it, batch_size))
+        if not chunk:
+            break
+        yield chunk
 
 
 def create_stream_identifier(stream: Union[AirbyteStream, AirbyteRecordMessage]) -> str:
