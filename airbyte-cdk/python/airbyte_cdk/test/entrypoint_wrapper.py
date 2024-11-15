@@ -106,14 +106,12 @@ class EntrypointOutput:
         return catalog[0]
 
     def get_stream_statuses(self, stream_name: str) -> List[AirbyteStreamStatus]:
-        status_messages = map(
-            lambda message: message.trace.stream_status.status,  # type: ignore
-            filter(
-                lambda message: message.trace.stream_status.stream_descriptor.name == stream_name,  # type: ignore # callable; trace has `stream_status`
-                self._get_trace_message_by_trace_type(TraceType.STREAM_STATUS),
-            ),
-        )
-        return list(status_messages)
+        trace_messages = self._get_trace_message_by_trace_type(TraceType.STREAM_STATUS)
+        return [
+            message.trace.stream_status.status  # type: ignore
+            for message in trace_messages
+            if message.trace.stream_status.stream_descriptor.name == stream_name  # type: ignore # callable; trace has `stream_status`
+        ]
 
     def _get_message_by_types(self, message_types: List[Type]) -> List[AirbyteMessage]:
         return [message for message in self._messages if message.type in message_types]
