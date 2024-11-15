@@ -17,7 +17,7 @@ from airbyte_cdk.destinations.vector_db_based.config import (
     ProcessingConfigModel,
 )
 from airbyte_cdk.destinations.vector_db_based.utils import create_chunks, format_exception
-from airbyte_cdk.models import AirbyteRecordMessage
+from airbyte_cdk.models import FailureType, AirbyteRecordMessage
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException, FailureType
 from langchain.embeddings.cohere import CohereEmbeddings
 from langchain.embeddings.fake import FakeEmbeddings
@@ -202,30 +202,30 @@ class FromFieldEmbedder(Embedder):
         From each chunk, pull the embedding from the field specified in the config.
         Check that the field exists, is a list of numbers and is the correct size. If not, raise an AirbyteTracedException explaining the problem.
         """
-        embeddings: List[Optional[List[float]]] = []
+        embeddings = []
         for document in documents:
             data = document.record.data
-            if self.config.field_name not in data:
+            field_name = self.config.field_name
+            if field_name not in data:
                 raise AirbyteTracedException(
                     internal_message="Embedding vector field not found",
                     failure_type=FailureType.config_error,
-                    message=f"Record {str(data)[:250]}... in stream {document.record.stream}  does not contain embedding vector field {self.config.field_name}. Please check your embedding configuration, the embedding vector field has to be set correctly on every record.",
+                    message=f"Record {str(data)[:250]}... in stream {document.record.stream} does not contain embedding vector field {field_name}. Please check your embedding configuration, the embedding vector field has to be set correctly on every record.",
                 )
-            field = data[self.config.field_name]
+            field = data[field_name]
             if not isinstance(field, list) or not all(isinstance(x, (int, float)) for x in field):
                 raise AirbyteTracedException(
                     internal_message="Embedding vector field not a list of numbers",
                     failure_type=FailureType.config_error,
-                    message=f"Record {str(data)[:250]}...  in stream {document.record.stream} does contain embedding vector field {self.config.field_name}, but it is not a list of numbers. Please check your embedding configuration, the embedding vector field has to be a list of numbers of length {self.config.dimensions} on every record.",
+                    message=f"Record {str(data)[:250]}... in stream {document.record.stream} contains embedding vector field {field_name}, but it is not a list of numbers. Please check your embedding configuration, the embedding vector field has to be a list of numbers of length {self.config.dimensions} on every record.",
                 )
             if len(field) != self.config.dimensions:
                 raise AirbyteTracedException(
                     internal_message="Embedding vector field has wrong length",
                     failure_type=FailureType.config_error,
-                    message=f"Record {str(data)[:250]}...  in stream {document.record.stream} does contain embedding vector field {self.config.field_name}, but it has length {len(field)} instead of the configured {self.config.dimensions}. Please check your embedding configuration, the embedding vector field has to be a list of numbers of length {self.config.dimensions} on every record.",
+                    message=f"Record {str(data)[:250]}... in stream {document.record.stream} contains embedding vector field {field_name}, but it has length {len(field)} instead of the configured {self.config.dimensions}. Please check your embedding configuration, the embedding vector field has to be a list of numbers of length {self.config.dimensions} on every record.",
                 )
             embeddings.append(field)
-
         return embeddings
 
     @property
