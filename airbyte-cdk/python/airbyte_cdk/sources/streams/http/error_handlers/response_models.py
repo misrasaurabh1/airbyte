@@ -26,16 +26,15 @@ class ErrorResolution:
 
 
 def _format_exception_error_message(exception: Exception) -> str:
-    return f"{type(exception).__name__}: {str(exception)}"
+    return f"{type(exception).__name__}: {exception}"
 
 
 def _format_response_error_message(response: requests.Response) -> str:
-    try:
-        response.raise_for_status()
-    except HTTPError as exception:
-        return filter_secrets(f"Response was not ok: `{str(exception)}`. Response content is: {response.text}")
-    # We purposefully do not add the response.content because the response is "ok" so there might be sensitive information in the payload.
-    # Feel free the
+    if response.status_code >= 400:
+        try:
+            response.raise_for_status()
+        except HTTPError as exception:
+            return filter_secrets(f"Response was not ok: `{exception}`. Response content is: {response.text}")
     return f"Unexpected response with HTTP status {response.status_code}"
 
 
