@@ -20,12 +20,13 @@ def get_primary_key_from_stream(stream_primary_key: Optional[Union[str, List[str
 
 
 def get_cursor_field_from_stream(stream: Stream) -> Optional[str]:
-    if isinstance(stream.cursor_field, list):
-        if len(stream.cursor_field) > 1:
-            raise ValueError(f"Nested cursor fields are not supported. Got {stream.cursor_field} for {stream.name}")
-        elif len(stream.cursor_field) == 0:
-            return None
-        else:
-            return stream.cursor_field[0]
-    else:
-        return stream.cursor_field
+    cursor_field = stream.cursor_field
+
+    if isinstance(cursor_field, list):
+        if len(cursor_field) != 1:
+            if len(cursor_field) == 0:
+                return None
+            raise ValueError(f"Nested cursor fields are not supported. Got {cursor_field} for {stream.name}")
+        return cursor_field[0]
+
+    return cursor_field
