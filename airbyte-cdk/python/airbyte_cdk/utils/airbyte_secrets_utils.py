@@ -5,6 +5,7 @@
 from typing import Any, List, Mapping
 
 import dpath
+import re
 
 
 def get_secret_paths(spec: Mapping[str, Any]) -> List[List[str]]:
@@ -69,10 +70,9 @@ def add_to_secrets(secret: str) -> None:
 
 
 def filter_secrets(string: str) -> str:
-    """Filter secrets from a string by replacing them with ****"""
-    # TODO this should perform a maximal match for each secret. if "x" and "xk" are both secret values, and this method is called twice on
-    #  the input "xk", then depending on call order it might only obfuscate "*k". This is a bug.
-    for secret in __SECRETS_FROM_CONFIG:
-        if secret:
-            string = string.replace(str(secret), "****")
+    """Filter secrets from a string by replacing them with ****."""
+    secret_patterns = sorted(__SECRETS_FROM_CONFIG, key=len, reverse=True)
+    if secret_patterns:
+        secret_regex = re.compile("|".join(map(re.escape, secret_patterns)))
+        return secret_regex.sub("****", string)
     return string
