@@ -100,7 +100,8 @@ class SubstreamResumableFullRefreshCursor(Cursor):
         return self._per_partition_state.get(self._to_partition_key(stream_slice.partition), {}).get("cursor")
 
     def _to_partition_key(self, partition: Mapping[str, Any]) -> str:
-        return self._partition_serializer.to_partition_key(partition)
+        # Directly calling the static method
+        return PerPartitionKeySerializer.to_partition_key(partition)
 
     def _to_dict(self, partition_key: str) -> Mapping[str, Any]:
         return self._partition_serializer.to_partition(partition_key)
