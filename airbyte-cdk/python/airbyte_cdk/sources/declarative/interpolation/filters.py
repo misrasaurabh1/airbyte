@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import re
+from functools import lru_cache
 from typing import Any, Optional
 
 
@@ -110,10 +111,16 @@ def regex_search(value: str, regex: str) -> str:
     """
     Match a regular expression against a string and return the first match group if it exists.
     """
-    match = re.search(regex, value)
+    compiled_regex = get_compiled_regex(regex)
+    match = compiled_regex.search(value)
     if match and len(match.groups()) > 0:
         return match.group(1)
     return ""
+
+
+@lru_cache(maxsize=None)
+def get_compiled_regex(regex: str):
+    return re.compile(regex)
 
 
 _filters_list = [hash, base64encode, base64decode, string, regex_search]
