@@ -10,7 +10,7 @@ from airbyte_cdk.models import AirbyteRecordMessage, AirbyteStream
 
 
 def format_exception(exception: Exception) -> str:
-    return str(exception) + "\n" + "".join(traceback.TracebackException.from_exception(exception).format())
+    return f"{exception}\n{''.join(traceback.format_exception(None, exception, exception.__traceback__))}"
 
 
 def create_chunks(iterable: Iterable[Any], batch_size: int) -> Iterator[Tuple[Any, ...]]:
