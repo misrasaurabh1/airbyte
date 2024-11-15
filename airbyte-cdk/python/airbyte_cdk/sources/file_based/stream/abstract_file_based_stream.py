@@ -64,18 +64,11 @@ class AbstractFileBasedStream(Stream):
 
     @property
     @abstractmethod
-    def primary_key(self) -> PrimaryKeyType:
-        ...
+    def primary_key(self) -> PrimaryKeyType: ...
 
-    @cache
+    @lru_cache(maxsize=1)
     def list_files(self) -> List[RemoteFile]:
-        """
-        List all files that belong to the stream.
-
-        The output of this method is cached so we don't need to list the files more than once.
-        This means we won't pick up changes to the files during a sync. This method uses the
-        get_files method which is implemented by the concrete stream class.
-        """
+        """List all files that belong to the stream."""
         return list(self.get_files())
 
     @abstractmethod
