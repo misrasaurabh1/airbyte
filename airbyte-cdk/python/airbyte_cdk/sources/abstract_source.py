@@ -62,6 +62,7 @@ class AbstractSource(Source, ABC):
         Any stream construction related operation should happen here.
         :return: A list of the streams in this source connector.
         """
+        pass  # Abstract method, no implementation
 
     # Stream name to instance map for applying output object transformation
     _stream_to_instance_map: Dict[str, Stream] = {}
@@ -71,8 +72,7 @@ class AbstractSource(Source, ABC):
         """Implements the Discover operation from the Airbyte Specification.
         See https://docs.airbyte.com/understanding-airbyte/airbyte-protocol/#discover.
         """
-        streams = [stream.as_airbyte_stream() for stream in self.streams(config=config)]
-        return AirbyteCatalog(streams=streams)
+        return AirbyteCatalog(streams=[stream.as_airbyte_stream() for stream in self.streams(config=config)])
 
     def check(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteConnectionStatus:
         """Implements the Check Connection operation from the Airbyte Specification.
