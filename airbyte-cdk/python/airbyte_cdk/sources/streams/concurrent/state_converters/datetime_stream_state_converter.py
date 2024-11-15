@@ -24,8 +24,7 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
 
     @property
     @abstractmethod
-    def _zero_value(self) -> Any:
-        ...
+    def _zero_value(self) -> Any: ...
 
     @property
     def zero_value(self) -> datetime:
@@ -36,16 +35,13 @@ class DateTimeStreamStateConverter(AbstractStreamStateConverter):
         return lambda: datetime.now(timezone.utc)
 
     @abstractmethod
-    def increment(self, timestamp: datetime) -> datetime:
-        ...
+    def increment(self, timestamp: datetime) -> datetime: ...
 
     @abstractmethod
-    def parse_timestamp(self, timestamp: Any) -> datetime:
-        ...
+    def parse_timestamp(self, timestamp: Any) -> datetime: ...
 
     @abstractmethod
-    def output_format(self, timestamp: datetime) -> Any:
-        ...
+    def output_format(self, timestamp: datetime) -> Any: ...
 
     def parse_value(self, value: Any) -> Any:
         """
@@ -114,7 +110,7 @@ class EpochValueConcurrentStreamStateConverter(DateTimeStreamStateConverter):
     _zero_value = 0
 
     def increment(self, timestamp: datetime) -> datetime:
-        return timestamp + timedelta(seconds=1)
+        return timestamp + self.one_second
 
     def output_format(self, timestamp: datetime) -> int:
         return int(timestamp.timestamp())
@@ -124,6 +120,9 @@ class EpochValueConcurrentStreamStateConverter(DateTimeStreamStateConverter):
         if not isinstance(dt_object, DateTime):
             raise ValueError(f"DateTime object was expected but got {type(dt_object)} from pendulum.parse({timestamp})")
         return dt_object  # type: ignore  # we are manually type checking because pendulum.parse may return different types
+
+    def __init__(self):
+        self.one_second = timedelta(seconds=1)
 
 
 class IsoMillisConcurrentStreamStateConverter(DateTimeStreamStateConverter):
