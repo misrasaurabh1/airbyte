@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+import re
 from typing import Any, List, Mapping
 
 import dpath
@@ -70,9 +71,12 @@ def add_to_secrets(secret: str) -> None:
 
 def filter_secrets(string: str) -> str:
     """Filter secrets from a string by replacing them with ****"""
-    # TODO this should perform a maximal match for each secret. if "x" and "xk" are both secret values, and this method is called twice on
-    #  the input "xk", then depending on call order it might only obfuscate "*k". This is a bug.
-    for secret in __SECRETS_FROM_CONFIG:
-        if secret:
-            string = string.replace(str(secret), "****")
-    return string
+    # Filtering out empty strings from the secret list
+    secrets_to_filter = [re.escape(secret) for secret in __SECRETS_FROM_CONFIG if secret]
+
+    if not secrets_to_filter:
+        return string
+
+    # Create a regex pattern that matches any of the secrets
+    pattern = re.compile(r"|".join(secrets_to_filter))
+    return pattern.sub("****", string)
