@@ -18,16 +18,17 @@ class AbstractHeaderAuthenticator(AuthBase):
 
     def get_auth_header(self) -> Mapping[str, Any]:
         """The header to set on outgoing HTTP requests"""
-        if self.auth_header:
-            return {self.auth_header: self.token}
-        return {}
+        auth_header = self.auth_header  # Cache the property to avoid repeated lookups
+        return {auth_header: self.token} if auth_header else {}
 
     @property
     @abstractmethod
     def auth_header(self) -> str:
         """HTTP header to set on the requests"""
+        pass
 
     @property
     @abstractmethod
     def token(self) -> str:
         """The header value to set on outgoing HTTP requests"""
+        pass
