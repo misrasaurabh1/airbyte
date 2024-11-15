@@ -1,5 +1,6 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, MutableMapping, Optional
 
@@ -8,6 +9,8 @@ from airbyte_cdk.sources.streams.checkpoint import Cursor
 from airbyte_cdk.sources.streams.checkpoint.per_partition_key_serializer import PerPartitionKeySerializer
 from airbyte_cdk.sources.types import Record, StreamSlice, StreamState
 from airbyte_cdk.utils import AirbyteTracedException
+import time
+import traceback
 
 FULL_REFRESH_COMPLETE_STATE: Mapping[str, Any] = {"__ab_full_refresh_sync_complete": True}
 
@@ -54,14 +57,12 @@ class SubstreamResumableFullRefreshCursor(Cursor):
                     ]
                 }
         """
-        if not stream_state:
-            return
-
-        if "states" not in stream_state:
+        if not stream_state or "states" not in stream_state:
+            if not stream_state:
+                return
             raise AirbyteTracedException(
                 internal_message=f"Could not sync parse the following state: {stream_state}",
-                message="The state for is format invalid. Validate that the migration steps included a reset and that it was performed "
-                "properly. Otherwise, please contact Airbyte support.",
+                message="The state is format invalid. Validate that the migration steps included a reset and that it was performed properly. Otherwise, please contact Airbyte support.",
                 failure_type=FailureType.config_error,
             )
 
@@ -104,3 +105,9 @@ class SubstreamResumableFullRefreshCursor(Cursor):
 
     def _to_dict(self, partition_key: str) -> Mapping[str, Any]:
         return self._partition_serializer.to_partition(partition_key)
+
+    def _get_now_millis(self) -> int:
+        return time.time_ns() // 1_000_000
+
+    def _format_stack_trace(self, exception: BaseException) -> str:
+        return "".join(traceback.TracebackException.from_exception(exception).format())
