@@ -30,9 +30,7 @@ def to_configured_stream(
     cursor_field: Optional[List[str]] = None,
     primary_key: Optional[List[List[str]]] = None,
 ) -> ConfiguredAirbyteStream:
-    return ConfiguredAirbyteStream(
-        stream=stream, sync_mode=sync_mode, destination_sync_mode=destination_sync_mode, cursor_field=cursor_field, primary_key=primary_key
-    )
+    return ConfiguredAirbyteStream(stream, sync_mode, destination_sync_mode, cursor_field, primary_key)
 
 
 def to_configured_catalog(configured_streams: List[ConfiguredAirbyteStream]) -> ConfiguredAirbyteCatalog:
