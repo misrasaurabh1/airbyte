@@ -90,9 +90,6 @@ class MinMaxDatetime:
     ) -> "MinMaxDatetime":
         if parameters is None:
             parameters = {}
-        if isinstance(interpolated_string_or_min_max_datetime, InterpolatedString) or isinstance(
-            interpolated_string_or_min_max_datetime, str
-        ):
+        if isinstance(interpolated_string_or_min_max_datetime, (InterpolatedString, str)):
             return MinMaxDatetime(datetime=interpolated_string_or_min_max_datetime, parameters=parameters)
-        else:
-            return interpolated_string_or_min_max_datetime
+        return interpolated_string_or_min_max_datetime
