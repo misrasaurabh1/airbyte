@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import datetime
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
@@ -227,15 +228,11 @@ class DatetimeBasedCursor(DeclarativeCursor):
         return start <= end
 
     def _evaluate_next_start_date_safely(self, start: datetime.datetime, step: datetime.timedelta) -> datetime.datetime:
-        """
-        Given that we set the default step at datetime.timedelta.max, we will generate an OverflowError when evaluating the next start_date
-        This method assumes that users would never enter a step that would generate an overflow. Given that would be the case, the code
-        would have broken anyway.
-        """
+        """Handles potential OverflowError when evaluating the next start_date"""
         try:
             return start + step
         except OverflowError:
-            return datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+            return datetime.datetime.max.replace(tzinfo=self._timezone)
 
     def _get_date(
         self,
@@ -270,7 +267,23 @@ class DatetimeBasedCursor(DeclarativeCursor):
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-        return self._get_request_options(RequestOptionType.request_parameter, stream_slice)
+        if not stream_slice:
+            raise ValueError("A partition needs to be provided in order to get request params")
+
+        partition_params = self._partition_router.get_request_params(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
+            next_page_token=next_page_token,
+        )
+
+        cursor_params = self._stream_cursor.get_request_params(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+            next_page_token=next_page_token,
+        )
+
+        combined_params = {**partition_params, **cursor_params}
+        return combined_params
 
     def get_request_headers(
         self,
