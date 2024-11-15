@@ -46,20 +46,22 @@ def resolve_ref_links(obj: Any) -> Any:
     :return JSON serializable object with references without external dependencies.
     """
     if isinstance(obj, jsonref.JsonRef):
-        obj = resolve_ref_links(obj.__subject__)
-        # Omit existing definitions for external resource since
-        # we dont need it anymore.
+        obj = obj.__subject__
         if isinstance(obj, dict):
             obj.pop("definitions", None)
-            return obj
         else:
             raise ValueError(f"Expected obj to be a dict. Got {obj}")
-    elif isinstance(obj, dict):
-        return {k: resolve_ref_links(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [resolve_ref_links(item) for item in obj]
-    else:
+        return resolve_ref_links(obj)
+
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            obj[k] = resolve_ref_links(v)
         return obj
+
+    if isinstance(obj, list):
+        return [resolve_ref_links(item) for item in obj]
+
+    return obj
 
 
 def _expand_refs(schema: Any, ref_resolver: Optional[RefResolver] = None) -> None:
