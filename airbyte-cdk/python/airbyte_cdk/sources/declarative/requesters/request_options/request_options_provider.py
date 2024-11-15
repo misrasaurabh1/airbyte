@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Union
@@ -21,7 +22,6 @@ class RequestOptionsProvider:
     - json content
     """
 
-    @abstractmethod
     def get_request_params(
         self,
         *,
@@ -29,12 +29,23 @@ class RequestOptionsProvider:
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-        """
-        Specifies the query parameters that should be set on an outgoing HTTP request given the inputs.
+        if not stream_slice:
+            raise ValueError("A partition needs to be provided in order to get request params")
 
-        E.g: you might want to define query parameters for paging if next_page_token is not None.
-        """
-        pass
+        partition_params = self._partition_router.get_request_params(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
+            next_page_token=next_page_token,
+        )
+
+        cursor_params = self._stream_cursor.get_request_params(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+            next_page_token=next_page_token,
+        )
+
+        combined_params = {**partition_params, **cursor_params}
+        return combined_params
 
     @abstractmethod
     def get_request_headers(

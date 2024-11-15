@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import threading
 import time
 from typing import Any, Iterable, Mapping, Optional, Union
@@ -192,18 +193,23 @@ class GlobalSubstreamCursor(DeclarativeCursor):
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-        if stream_slice:
-            return self._partition_router.get_request_params(  # type: ignore # this always returns a mapping
-                stream_state=stream_state,
-                stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
-                next_page_token=next_page_token,
-            ) | self._stream_cursor.get_request_params(
-                stream_state=stream_state,
-                stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
-                next_page_token=next_page_token,
-            )
-        else:
+        if not stream_slice:
             raise ValueError("A partition needs to be provided in order to get request params")
+
+        partition_params = self._partition_router.get_request_params(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
+            next_page_token=next_page_token,
+        )
+
+        cursor_params = self._stream_cursor.get_request_params(
+            stream_state=stream_state,
+            stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+            next_page_token=next_page_token,
+        )
+
+        combined_params = {**partition_params, **cursor_params}
+        return combined_params
 
     def get_request_headers(
         self,
