@@ -150,15 +150,15 @@ class HttpClient:
         Remove query parameters from params mapping if they are already encoded in the URL.
         :param url: URL with
         :param params:
-        :return:
+        :return: params with duplicates removed
         """
-        if params is None:
-            params = {}
+        if not params:
+            return {}
+
         query_string = urllib.parse.urlparse(url).query
         query_dict = {k: v[0] for k, v in urllib.parse.parse_qs(query_string).items()}
 
-        duplicate_keys_with_same_value = {k for k in query_dict.keys() if str(params.get(k)) == str(query_dict[k])}
-        return {k: v for k, v in params.items() if k not in duplicate_keys_with_same_value}
+        return {k: v for k, v in params.items() if k not in query_dict or str(query_dict[k]) != str(v)}
 
     def _create_prepared_request(
         self,
