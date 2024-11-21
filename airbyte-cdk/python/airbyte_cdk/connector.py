@@ -16,10 +16,8 @@ from airbyte_cdk.models import AirbyteConnectionStatus, ConnectorSpecification, 
 
 def load_optional_package_file(package: str, filename: str) -> Optional[bytes]:
     """Gets a resource from a package, returning None if it does not exist"""
-    try:
-        return pkgutil.get_data(package, filename)
-    except FileNotFoundError:
-        return None
+    data = pkgutil.get_data(package, filename)
+    return data if data is not None else None
 
 
 TConfig = TypeVar("TConfig", bound=Mapping[str, Any])
@@ -96,8 +94,7 @@ class BaseConnector(ABC, Generic[TConfig]):
 
 class _WriteConfigProtocol(Protocol):
     @staticmethod
-    def write_config(config: Mapping[str, Any], config_path: str) -> None:
-        ...
+    def write_config(config: Mapping[str, Any], config_path: str) -> None: ...
 
 
 class DefaultConnectorMixin:
@@ -108,5 +105,4 @@ class DefaultConnectorMixin:
         return config
 
 
-class Connector(DefaultConnectorMixin, BaseConnector[Mapping[str, Any]], ABC):
-    ...
+class Connector(DefaultConnectorMixin, BaseConnector[Mapping[str, Any]], ABC): ...
