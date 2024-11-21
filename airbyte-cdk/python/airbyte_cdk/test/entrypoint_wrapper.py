@@ -62,6 +62,8 @@ class EntrypointOutput:
         except (orjson.JSONDecodeError, SchemaValidationError):
             # The platform assumes that logs that are not of AirbyteMessage format are log messages
             return AirbyteMessage(type=Type.LOG, log=AirbyteLogMessage(level=Level.INFO, message=message))
+        except V2ValidationError:
+            raise ValueError("All messages are expected to be AirbyteMessage")
 
     @property
     def records_and_state_messages(self) -> List[AirbyteMessage]:
