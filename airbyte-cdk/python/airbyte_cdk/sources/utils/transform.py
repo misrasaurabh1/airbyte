@@ -95,35 +95,29 @@ class TypeTransformer:
         :return transformed field value.
         """
         target_type = subschema.get("type", [])
-        if original_item is None and "null" in target_type:
-            return None
+        if original_item is None:
+            if "null" in target_type:
+                return None
+            return original_item
+
         if isinstance(target_type, list):
-            # jsonschema type could either be a single string or array of type
-            # strings. In case if there is some disambigous and more than one
-            # type (except null) do not do any conversion and return original
-            # value. If type array has one type and null i.e. {"type":
-            # ["integer", "null"]}, convert value to specified type.
             target_type = [t for t in target_type if t != "null"]
             if len(target_type) != 1:
                 return original_item
             target_type = target_type[0]
-        try:
-            if target_type == "string":
-                return str(original_item)
-            elif target_type == "number":
-                return float(original_item)
-            elif target_type == "integer":
-                return int(original_item)
-            elif target_type == "boolean":
-                if isinstance(original_item, str):
+
+        if target_type in json_to_python_simple:
+            try:
+                if target_type == "boolean" and isinstance(original_item, str):
                     return strtobool(original_item) == 1
-                return bool(original_item)
-            elif target_type == "array":
-                item_types = set(subschema.get("items", {}).get("type", set()))
-                if item_types.issubset(json_to_python_simple) and type(original_item) in json_to_python_simple.values():
-                    return [original_item]
-        except (ValueError, TypeError):
-            return original_item
+                return json_to_python_simple[target_type](original_item)
+            except (ValueError, TypeError):
+                pass
+        elif target_type == "array" and isinstance(original_item, (list, tuple)):
+            item_types = set(subschema.get("items", {}).get("type", set()))
+            if item_types.issubset(json_to_python_simple) and type(original_item) in json_to_python_simple.values():
+                return [original_item]
+
         return original_item
 
     def __get_normalizer(self, schema_key: str, original_validator: Callable):
