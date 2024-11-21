@@ -131,4 +131,4 @@ class ConnectorStateManager:
 
     @staticmethod
     def _is_per_stream_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
-        return isinstance(state, List)
+        return isinstance(state, list)
