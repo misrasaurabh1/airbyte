@@ -185,7 +185,8 @@ class SourceS3StreamReader(AbstractFileBasedStreamReader):
 
     @staticmethod
     def _is_folder(file) -> bool:
-        return file["Key"].endswith("/")
+        # Uses string slicing for efficiency.
+        return file["Key"][-1:] == "/"
 
     def _page(
         self, s3: BaseClient, globs: List[str], bucket: str, prefix: Optional[str], seen: Set[str], logger: logging.Logger
