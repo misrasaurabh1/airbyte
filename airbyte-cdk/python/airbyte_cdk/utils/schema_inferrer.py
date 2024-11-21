@@ -197,45 +197,36 @@ class SchemaInferrer:
         if self._is_leaf(path):
             return
 
-        if not traveled_path:
+        if traveled_path is None:
             traveled_path = []
 
-        if _PROPERTIES not in node:
-            # This validation is only relevant when `traveled_path` is empty
-            raise ValueError(
-                f"Path {traveled_path} does not refer to an object but is `{node}` and hence {path} can't be marked as required."
-            )
-
         next_node = path[0]
-        if next_node not in node[_PROPERTIES]:
+        properties = node.get(_PROPERTIES)
+        if properties is None or next_node not in properties:
             raise ValueError(f"Path {traveled_path} does not have field `{next_node}` in the schema and hence can't be marked as required.")
 
-        if _TYPE not in node:
-            # We do not expect this case to happen but we added a specific error message just in case
-            raise ValueError(
-                f"Unknown schema error: {traveled_path} is expected to have a type but did not. Schema inferrence is probably broken"
-            )
+        node_type = node.get(_TYPE)
+        if node_type not in [_OBJECT_TYPE, [_NULL_TYPE, _OBJECT_TYPE], [_OBJECT_TYPE, _NULL_TYPE]]:
+            raise ValueError(f"Path {traveled_path} is expected to be an object but was of type `{node[_PROPERTIES][next_node][_TYPE]}`")
 
-        if node[_TYPE] not in [_OBJECT_TYPE, [_NULL_TYPE, _OBJECT_TYPE], [_OBJECT_TYPE, _NULL_TYPE]]:
-            raise ValueError(f"Path {traveled_path} is expected to be an object but was of type `{node['properties'][next_node]['type']}`")
-
-        if _REQUIRED not in node or not node[_REQUIRED]:
+        required = node.get(_REQUIRED)
+        if required is None:
             node[_REQUIRED] = [next_node]
-        elif next_node not in node[_REQUIRED]:
-            node[_REQUIRED].append(next_node)
+        elif next_node not in required:
+            required.append(next_node)
 
         traveled_path.append(next_node)
-        self._add_field_as_required(node[_PROPERTIES][next_node], path[1:], traveled_path)
+        self._add_field_as_required(properties[next_node], path[1:], traveled_path)
 
     def _is_leaf(self, path: List[str]) -> bool:
-        return len(path) == 0
+        return not path
 
     def _remove_null_from_type(self, node: InferredSchema) -> None:
-        if isinstance(node[_TYPE], list):
-            if _NULL_TYPE in node[_TYPE]:
-                node[_TYPE].remove(_NULL_TYPE)
-            if len(node[_TYPE]) == 1:
-                node[_TYPE] = node[_TYPE][0]
+        node_type = node[_TYPE]
+        if isinstance(node_type, list) and _NULL_TYPE in node_type:
+            node_type.remove(_NULL_TYPE)
+            if len(node_type) == 1:
+                node[_TYPE] = node_type[0]
 
     def get_stream_schema(self, stream_name: str) -> Optional[InferredSchema]:
         """
