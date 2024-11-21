@@ -199,15 +199,17 @@ def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> 
 def _parse_json_input(input_schema: Union[str, Mapping[str, str]]) -> Optional[Mapping[str, str]]:
     try:
         if isinstance(input_schema, str):
-            schema: Mapping[str, str] = json.loads(input_schema)
+            schema = json.loads(input_schema)
         else:
             schema = input_schema
-        if not all(isinstance(s, str) for s in schema.values()):
-            raise ConfigValidationError(
-                FileBasedSourceError.ERROR_PARSING_USER_PROVIDED_SCHEMA, details="Invalid input schema; nested schemas are not supported."
-            )
 
-    except json.decoder.JSONDecodeError:
+        for s_value in schema.values():
+            if not isinstance(s_value, str):
+                raise ConfigValidationError(
+                    FileBasedSourceError.ERROR_PARSING_USER_PROVIDED_SCHEMA,
+                    details="Invalid input schema; nested schemas are not supported.",
+                )
+    except (json.JSONDecodeError, TypeError):
         return None
 
     return schema
