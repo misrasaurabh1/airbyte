@@ -34,10 +34,9 @@ class TestReadLimits:
 
 def get_limits(config: Mapping[str, Any]) -> TestReadLimits:
     command_config = config.get("__test_read_config", {})
-    max_pages_per_slice = command_config.get(MAX_PAGES_PER_SLICE_KEY) or DEFAULT_MAXIMUM_NUMBER_OF_PAGES_PER_SLICE
-    max_slices = command_config.get(MAX_SLICES_KEY) or DEFAULT_MAXIMUM_NUMBER_OF_SLICES
-    max_records = command_config.get(MAX_RECORDS_KEY) or DEFAULT_MAXIMUM_RECORDS
-    return TestReadLimits(max_records, max_pages_per_slice, max_slices)
+    return TestReadLimits(
+        command_config.get("max_records", 100), command_config.get("max_pages_per_slice", 5), command_config.get("max_slices", 5)
+    )
 
 
 def create_source(config: Mapping[str, Any], limits: TestReadLimits) -> ManifestDeclarativeSource:
