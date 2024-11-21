@@ -60,36 +60,42 @@ class AirbyteEntrypoint(object):
 
     @staticmethod
     def parse_args(args: List[str]) -> argparse.Namespace:
-        # set up parent parsers
         parent_parser = argparse.ArgumentParser(add_help=False)
         parent_parser.add_argument("--debug", action="store_true", help="enables detailed debug logs related to the sync")
+
         main_parser = argparse.ArgumentParser()
         subparsers = main_parser.add_subparsers(title="commands", dest="command")
 
-        # spec
-        subparsers.add_parser("spec", help="outputs the json configuration specification", parents=[parent_parser])
+        # Define subparsers with their arguments in a loop to reduce repetition
+        commands = {
+            "spec": {"help": "outputs the json configuration specification"},
+            "check": {
+                "help": "checks the config can be used to connect",
+                "required_args": [("--config", str, True, "path to the json configuration file")],
+            },
+            "discover": {
+                "help": "outputs a catalog describing the source's schema",
+                "required_args": [("--config", str, True, "path to the json configuration file")],
+            },
+            "read": {
+                "help": "reads the source and outputs messages to STDOUT",
+                "optional_args": [("--state", str, False, "path to the json-encoded state file")],
+                "required_args": [
+                    ("--config", str, True, "path to the json configuration file"),
+                    ("--catalog", str, True, "path to the catalog used to determine which data to read"),
+                ],
+            },
+        }
 
-        # check
-        check_parser = subparsers.add_parser("check", help="checks the config can be used to connect", parents=[parent_parser])
-        required_check_parser = check_parser.add_argument_group("required named arguments")
-        required_check_parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
-
-        # discover
-        discover_parser = subparsers.add_parser(
-            "discover", help="outputs a catalog describing the source's schema", parents=[parent_parser]
-        )
-        required_discover_parser = discover_parser.add_argument_group("required named arguments")
-        required_discover_parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
-
-        # read
-        read_parser = subparsers.add_parser("read", help="reads the source and outputs messages to STDOUT", parents=[parent_parser])
-
-        read_parser.add_argument("--state", type=str, required=False, help="path to the json-encoded state file")
-        required_read_parser = read_parser.add_argument_group("required named arguments")
-        required_read_parser.add_argument("--config", type=str, required=True, help="path to the json configuration file")
-        required_read_parser.add_argument(
-            "--catalog", type=str, required=True, help="path to the catalog used to determine which data to read"
-        )
+        for cmd, opts in commands.items():
+            parser = subparsers.add_parser(cmd, help=opts["help"], parents=[parent_parser])
+            if "required_args" in opts:
+                req_group = parser.add_argument_group("required named arguments")
+                for arg, type_, required, help_txt in opts["required_args"]:
+                    req_group.add_argument(arg, type=type_, required=required, help=help_txt)
+            if "optional_args" in opts:
+                for arg, type_, required, help_txt in opts["optional_args"]:
+                    parser.add_argument(arg, type=type_, required=required, help=help_txt)
 
         return main_parser.parse_args(args)
 
