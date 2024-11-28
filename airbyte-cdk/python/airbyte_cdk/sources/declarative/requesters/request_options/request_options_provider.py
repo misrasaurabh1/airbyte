@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Union
@@ -36,7 +37,6 @@ class RequestOptionsProvider:
         """
         pass
 
-    @abstractmethod
     def get_request_headers(
         self,
         *,
@@ -44,7 +44,22 @@ class RequestOptionsProvider:
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-        """Return any non-auth headers. Authentication headers will overwrite any overlapping headers returned from this method."""
+        if stream_slice:
+            partition_key = self._to_partition_key(stream_slice.partition)
+            return {
+                **self._partition_router.get_request_headers(
+                    stream_state=stream_state,
+                    stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
+                    next_page_token=next_page_token,
+                ),
+                **self._cursor_per_partition[partition_key].get_request_headers(
+                    stream_state=stream_state,
+                    stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+                    next_page_token=next_page_token,
+                ),
+            }
+        else:
+            raise ValueError("A partition needs to be provided in order to get request headers")
 
     @abstractmethod
     def get_request_body_data(
