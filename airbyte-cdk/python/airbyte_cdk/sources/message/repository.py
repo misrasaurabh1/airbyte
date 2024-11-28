@@ -107,17 +107,17 @@ class LogAppenderMessageRepositoryDecorator(MessageRepository):
         return self._decorated.consume_queue()
 
     def _append_second_to_first(self, first: LogMessage, second: LogMessage, path: Optional[List[str]] = None) -> LogMessage:
-        if path is None:
-            path = []
+        path_str = ".".join(path) if path else ""
 
-        for key in second:
+        for key, value in second.items():
             if key in first:
-                if isinstance(first[key], dict) and isinstance(second[key], dict):
-                    self._append_second_to_first(first[key], second[key], path + [str(key)])  # type: ignore # type is verified above
+                first_value = first[key]
+                if isinstance(first_value, dict) and isinstance(value, dict):
+                    self._append_second_to_first(first_value, value, path + [str(key)] if path else [str(key)])
                 else:
-                    if first[key] != second[key]:
-                        _LOGGER.warning("Conflict at %s" % ".".join(path + [str(key)]))
-                    first[key] = second[key]
+                    if first_value != value:
+                        _LOGGER.warning(f"Conflict at {path_str + '.' if path_str else ''}{key}")
+                    first[key] = value
             else:
-                first[key] = second[key]
+                first[key] = value
         return first
