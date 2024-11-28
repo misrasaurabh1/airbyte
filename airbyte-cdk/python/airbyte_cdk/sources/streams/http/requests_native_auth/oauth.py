@@ -256,3 +256,6 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
         Overriding AbstractOauth2Authenticator._message_repository to allow for HTTP request logs
         """
         return self.__message_repository
+
+    def _get_config_value(self, path: Sequence[str]) -> Any:
+        return dpath.get(self._connector_config, path)
