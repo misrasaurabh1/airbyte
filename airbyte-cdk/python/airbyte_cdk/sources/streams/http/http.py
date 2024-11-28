@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -434,12 +435,9 @@ class HttpStream(Stream, CheckpointMixin, ABC):
             cursor_slice = stream_slice.cursor_slice
             remaining = {k: v for k, v in stream_slice.items()}
         else:
-            # RFR streams that implement stream_slices() to generate stream slices in the legacy mapping format are converted into a
-            # structured stream slice mapping by the LegacyCursorBasedCheckpointReader. The structured mapping object has separate
-            # fields for the partition and cursor_slice value
             partition = stream_slice.get("partition", {})
             cursor_slice = stream_slice.get("cursor_slice", {})
-            remaining = {key: val for key, val in stream_slice.items() if key != "partition" and key != "cursor_slice"}
+            remaining = {key: val for key, val in stream_slice.items() if key not in {"partition", "cursor_slice"}}
         return partition, cursor_slice, remaining
 
     def _fetch_next_page(
