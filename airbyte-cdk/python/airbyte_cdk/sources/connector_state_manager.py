@@ -123,7 +123,7 @@ class ConnectorStateManager:
     @staticmethod
     def _is_global_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return (
-            isinstance(state, List)
+            isinstance(state, list)
             and len(state) == 1
             and isinstance(state[0], AirbyteStateMessage)
             and state[0].type == AirbyteStateType.GLOBAL
@@ -132,3 +132,17 @@ class ConnectorStateManager:
     @staticmethod
     def _is_per_stream_state(state: Union[List[AirbyteStateMessage], MutableMapping[str, Any]]) -> bool:
         return isinstance(state, List)
+
+    @staticmethod
+    def _extract_from_state_message(state: List[AirbyteStateMessage]):
+        # Extract shared_state and per_stream_states
+        shared_state = None
+        per_stream_states = []
+        for sm in state:
+            if sm.type == AirbyteStateType.GLOBAL:
+                if shared_state is not None:
+                    raise ValueError("Multiple GLOBAL states detected, only one is expected.")
+                shared_state = sm
+            else:
+                per_stream_states.append(sm.stream)
+        return shared_state, per_stream_states
