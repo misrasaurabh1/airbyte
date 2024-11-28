@@ -129,7 +129,8 @@ class CohereEmbedder(Embedder):
         return None
 
     def embed_documents(self, documents: List[Document]) -> List[Optional[List[float]]]:
-        return cast(List[Optional[List[float]]], self.embeddings.embed_documents([document.page_content for document in documents]))
+        page_contents = [document.page_content for document in documents]
+        return self.embeddings.embed_documents(page_contents)
 
     @property
     def embedding_dimensions(self) -> int:
