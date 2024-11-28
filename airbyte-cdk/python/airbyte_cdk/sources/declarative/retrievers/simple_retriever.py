@@ -457,8 +457,7 @@ class SimpleRetriever(Retriever):
 
     @staticmethod
     def _to_partition_key(to_serialize: Any) -> str:
-        # separators have changed in Python 3.4. To avoid being impacted by further change, we explicitly specify our own value
-        return json.dumps(to_serialize, indent=None, separators=(",", ":"), sort_keys=True)
+        return json.dumps(to_serialize, separators=(",", ":"), sort_keys=True)
 
 
 @dataclass
