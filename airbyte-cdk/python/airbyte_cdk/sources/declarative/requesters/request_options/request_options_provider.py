@@ -46,7 +46,6 @@ class RequestOptionsProvider:
     ) -> Mapping[str, Any]:
         """Return any non-auth headers. Authentication headers will overwrite any overlapping headers returned from this method."""
 
-    @abstractmethod
     def get_request_body_data(
         self,
         *,
@@ -54,15 +53,7 @@ class RequestOptionsProvider:
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Union[Mapping[str, Any], str]:
-        """
-        Specifies how to populate the body of the request with a non-JSON payload.
-
-        If returns a ready text that it will be sent as is.
-        If returns a dict that it will be converted to a urlencoded form.
-        E.g. {"key1": "value1", "key2": "value2"} => "key1=value1&key2=value2"
-
-        At the same time only one of the 'request_body_data' and 'request_body_json' functions can be overridden.
-        """
+        return self._decorated.get_request_body_data(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token)
 
     @abstractmethod
     def get_request_body_json(
