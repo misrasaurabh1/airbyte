@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 import dpath
@@ -9,6 +10,7 @@ import pendulum
 from airbyte_cdk.config_observation import create_connector_config_control_message, emit_configuration_as_airbyte_control_message
 from airbyte_cdk.sources.message import MessageRepository, NoopMessageRepository
 from airbyte_cdk.sources.streams.http.requests_native_auth.abstract_oauth import AbstractOauth2Authenticator
+from datetime import datetime, timedelta, timezone
 
 
 class Oauth2Authenticator(AbstractOauth2Authenticator):
@@ -208,18 +210,18 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
         return pendulum.now().subtract(days=1) if expiry_date == "" else pendulum.parse(expiry_date)
 
     def set_token_expiry_date(self, new_token_expiry_date):
-        dpath.new(self._connector_config, self._token_expiry_date_config_path, str(new_token_expiry_date))
+        dpath.new(self._connector_config, self._token_expiry_date_config_path, new_token_expiry_date.isoformat())
 
     def token_has_expired(self) -> bool:
         """Returns True if the token is expired"""
-        return pendulum.now("UTC") > self.get_token_expiry_date()
+        return datetime.now(timezone.utc) > self.get_token_expiry_date()
 
     @staticmethod
     def get_new_token_expiry_date(access_token_expires_in: str, token_expiry_date_format: str = None) -> pendulum.DateTime:
         if token_expiry_date_format:
-            return pendulum.from_format(access_token_expires_in, token_expiry_date_format)
+            return datetime.strptime(access_token_expires_in, token_expiry_date_format).replace(tzinfo=timezone.utc)
         else:
-            return pendulum.now("UTC").add(seconds=int(access_token_expires_in))
+            return datetime.now(timezone.utc) + timedelta(seconds=int(access_token_expires_in))
 
     def get_access_token(self) -> str:
         """Retrieve new access and refresh token if the access token has expired.
@@ -247,12 +249,10 @@ class SingleUseRefreshTokenOauth2Authenticator(Oauth2Authenticator):
         return (
             response_json[self.get_access_token_name()],
             response_json[self.get_expires_in_name()],
-            response_json[self.get_refresh_token_name()],
+            response_json.get(self.get_refresh_token_name(), self.get_refresh_token()),
         )
 
     @property
     def _message_repository(self) -> MessageRepository:
-        """
-        Overriding AbstractOauth2Authenticator._message_repository to allow for HTTP request logs
-        """
+        """Overriding AbstractOauth2Authenticator._message_repository to allow for HTTP request logs"""
         return self.__message_repository
