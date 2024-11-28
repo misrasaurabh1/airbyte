@@ -297,6 +297,13 @@ class StreamPartition(Partition):
     def __repr__(self) -> str:
         return f"StreamPartition({self._stream.name}, {self._slice})"
 
+    def _compute_hash(self) -> int:
+        if self._slice:
+            # Convert the slice to a canonical string for predictable hash
+            s = json.dumps(self._slice, sort_keys=True, cls=SliceEncoder)
+            return hash((self._stream.name, s))
+        return hash(self._stream.name)
+
 
 class StreamPartitionGenerator(PartitionGenerator):
     """
