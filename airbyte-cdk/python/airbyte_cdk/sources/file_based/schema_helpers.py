@@ -169,21 +169,22 @@ def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> 
     - For every column in the record, that column's type is equal to or narrower than the same column's
       type in the schema.
     """
-    schema_columns = set(schema.get("properties", {}).keys())
-    record_columns = set(record.keys())
+    schema_properties = schema.get("properties", {})
 
-    if not record_columns.issubset(schema_columns):
-        return False
+    for column, value in record.items():
+        if column not in schema_properties:
+            return False
 
-    for column, definition in schema.get("properties", {}).items():
+        definition = schema_properties[column]
         expected_type = definition.get("type")
-        value = record.get(column)
 
         if value is not None:
             if isinstance(expected_type, list):
-                return any(is_equal_or_narrower_type(value, e) for e in expected_type)
+                if not any(is_equal_or_narrower_type(value, e) for e in expected_type):
+                    return False
             elif expected_type == "object":
-                return isinstance(value, dict)
+                if not isinstance(value, dict):
+                    return False
             elif expected_type == "array":
                 if not isinstance(value, list):
                     return False
