@@ -161,16 +161,14 @@ class DefaultPaginator(Paginator):
 
     def _get_request_options(self, option_type: RequestOptionType) -> MutableMapping[str, Any]:
         options = {}
+        token_option = self.page_token_option
+        if token_option and self._token is not None and isinstance(token_option, RequestOption) and token_option.inject_into == option_type:
+            options[token_option.field_name.eval(config=self.config)] = self._token  # type: ignore # field_name is always cast to an interpolated string
 
-        if (
-            self.page_token_option
-            and self._token is not None
-            and isinstance(self.page_token_option, RequestOption)
-            and self.page_token_option.inject_into == option_type
-        ):
-            options[self.page_token_option.field_name.eval(config=self.config)] = self._token  # type: ignore # field_name is always cast to an interpolated string
-        if self.page_size_option and self.pagination_strategy.get_page_size() and self.page_size_option.inject_into == option_type:
-            options[self.page_size_option.field_name.eval(config=self.config)] = self.pagination_strategy.get_page_size()  # type: ignore # field_name is always cast to an interpolated string
+        size_option = self.page_size_option
+        if size_option and (page_size := self.pagination_strategy.get_page_size()) and size_option.inject_into == option_type:
+            options[size_option.field_name.eval(config=self.config)] = page_size  # type: ignore # field_name is always cast to an interpolated string
+
         return options
 
 
