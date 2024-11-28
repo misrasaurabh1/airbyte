@@ -89,42 +89,32 @@ class TypeTransformer:
     @staticmethod
     def default_convert(original_item: Any, subschema: Dict[str, Any]) -> Any:
         """
-        Default transform function that is used when TransformConfig.DefaultSchemaNormalization flag set.
-        :param original_item original value of field.
-        :param subschema part of the jsonschema containing field type/format data.
-        :return transformed field value.
+        Default transform function that is used when TransformConfig.DefaultSchemaNormalization flag is set.
+        :param original_item: Original value of field.
+        :param subschema: Part of the jsonschema containing field type/format data.
+        :return: Transformed field value.
         """
         target_type = subschema.get("type", [])
+
         if original_item is None and "null" in target_type:
             return None
+
         if isinstance(target_type, list):
-            # jsonschema type could either be a single string or array of type
-            # strings. In case if there is some disambigous and more than one
-            # type (except null) do not do any conversion and return original
-            # value. If type array has one type and null i.e. {"type":
-            # ["integer", "null"]}, convert value to specified type.
             target_type = [t for t in target_type if t != "null"]
             if len(target_type) != 1:
                 return original_item
             target_type = target_type[0]
+
+        convert_function = json_to_python_simple.get(target_type)
+        if not convert_function:
+            return original_item
+
         try:
-            if target_type == "string":
-                return str(original_item)
-            elif target_type == "number":
-                return float(original_item)
-            elif target_type == "integer":
-                return int(original_item)
-            elif target_type == "boolean":
-                if isinstance(original_item, str):
-                    return strtobool(original_item) == 1
-                return bool(original_item)
-            elif target_type == "array":
-                item_types = set(subschema.get("items", {}).get("type", set()))
-                if item_types.issubset(json_to_python_simple) and type(original_item) in json_to_python_simple.values():
-                    return [original_item]
+            if target_type == "boolean" and isinstance(original_item, str):
+                return strtobool(original_item) == 1
+            return convert_function(original_item)
         except (ValueError, TypeError):
             return original_item
-        return original_item
 
     def __get_normalizer(self, schema_key: str, original_validator: Callable):
         """
