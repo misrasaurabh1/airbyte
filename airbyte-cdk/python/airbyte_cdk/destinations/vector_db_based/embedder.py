@@ -87,12 +87,14 @@ class BaseOpenAIEmbedder(Embedder):
         It's still possible to run into the rate limit between each embed call because the available token budget hasn't recovered between the calls,
         but the built-in retry mechanism of the OpenAI client handles that.
         """
-        # Each chunk can hold at most self.chunk_size tokens, so tokens-per-minute by maximum tokens per chunk is the number of documents that can be embedded at once without exhausting the limit in a single request
         embedding_batch_size = OPEN_AI_TOKEN_LIMIT // self.chunk_size
         batches = create_chunks(documents, batch_size=embedding_batch_size)
         embeddings: List[Optional[List[float]]] = []
+
         for batch in batches:
-            embeddings.extend(self.embeddings.embed_documents([chunk.page_content for chunk in batch]))
+            page_contents = [chunk.page_content for chunk in batch]
+            embeddings.extend(self.embeddings.embed_documents(page_contents))
+
         return embeddings
 
     @property
