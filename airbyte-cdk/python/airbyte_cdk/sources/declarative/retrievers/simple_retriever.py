@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import json
 from dataclasses import InitVar, dataclass, field
 from functools import partial
@@ -25,6 +26,7 @@ from airbyte_cdk.sources.http_logger import format_http_message
 from airbyte_cdk.sources.streams.core import StreamData
 from airbyte_cdk.sources.types import Config, Record, StreamSlice, StreamState
 from airbyte_cdk.utils.mapping_helpers import combine_mappings
+from airbyte_cdk.sources.declarative.requesters.request_options.request_options_provider import RequestOptionsProvider
 
 FULL_REFRESH_SYNC_COMPLETE_KEY = "__ab_full_refresh_sync_complete"
 
@@ -504,3 +506,7 @@ class SimpleRetrieverTestReadDecorator(SimpleRetriever):
                 self.name,
             ),
         )
+
+    def _get_request_options(self, *args, **kwargs) -> Mapping[str, Any]:
+        # Placeholder implementation
+        return {}

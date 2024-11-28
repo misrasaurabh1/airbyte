@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from abc import abstractmethod
 from enum import Enum
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Union
@@ -133,3 +134,4 @@ class Requester(RequestOptionsProvider):
 
         If a log formatter is provided, it's used to log the performed request and response. If it's not provided, no logging is performed.
         """
+        pass
