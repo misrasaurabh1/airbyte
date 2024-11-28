@@ -10,15 +10,15 @@ from typing import Any, Optional
 
 def hash(value: Any, hash_type: str = "md5", salt: Optional[str] = None) -> str:
     """
-      Implementation of a custom Jinja2 hash filter
-      Hash type defaults to 'md5' if one is not specified.
+    Implementation of a custom Jinja2 hash filter.
+    Hash type defaults to 'md5' if one is not specified.
 
-      If you are using this has function for GDPR compliance, then
-      you should probably also pass in a salt as discussed in:
-      https://security.stackexchange.com/questions/202022/hashing-email-addresses-for-gdpr-compliance
+    If you are using this has function for GDPR compliance, then
+    you should probably also pass in a salt as discussed in:
+    https://security.stackexchange.com/questions/202022/hashing-email-addresses-for-gdpr-compliance
 
-      This can be used in a low code connector definition under the AddFields transformation.
-      For example:
+    This can be used in a low code connector definition under the AddFields transformation.
+    For example:
 
     rates_stream:
       $ref: "#/definitions/base_stream"
@@ -32,26 +32,25 @@ def hash(value: Any, hash_type: str = "md5", salt: Optional[str] = None) -> str:
             - path: ["some_new_path"]
               value: "{{ record['rates']['CAD'] | hash('md5', 'mysalt')  }}"
 
-
-
-      :param value: value to be hashed
-      :param hash_type: valid hash type
-      :param salt: a salt that will be combined with the value to ensure that the hash created for a given value on this system
-                   is different from the hash created for that value on other systems.
-      :return: computed hash as a hexadecimal string
+    :param value: value to be hashed
+    :param hash_type: valid hash type
+    :param salt: a salt that will be combined with the value to ensure that the hash created for a given value on this system
+                 is different from the hash created for that value on other systems.
+    :return: computed hash as a hexadecimal string
     """
-    hash_func = getattr(hashlib, hash_type, None)
+    try:
+        hash_func = hashlib.new(hash_type)
+    except ValueError:
+        raise AttributeError(f"No hashing function named {hash_type}")
 
-    if hash_func:
-        hash_obj = hash_func()
-        hash_obj.update(str(value).encode("utf-8"))
-        if salt:
-            hash_obj.update(str(salt).encode("utf-8"))
-        computed_hash: str = hash_obj.hexdigest()
-    else:
-        raise AttributeError("No hashing function named {hname}".format(hname=hash_type))
+    # Directly convert value to string and encode once
+    value_bytes = str(value).encode("utf-8")
+    hash_func.update(value_bytes)
 
-    return computed_hash
+    if salt:
+        hash_func.update(str(salt).encode("utf-8"))
+
+    return hash_func.hexdigest()
 
 
 def base64encode(value: str) -> str:
