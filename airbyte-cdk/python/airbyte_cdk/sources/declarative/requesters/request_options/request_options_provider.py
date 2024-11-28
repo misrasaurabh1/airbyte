@@ -64,7 +64,6 @@ class RequestOptionsProvider:
         At the same time only one of the 'request_body_data' and 'request_body_json' functions can be overridden.
         """
 
-    @abstractmethod
     def get_request_body_json(
         self,
         *,
@@ -72,8 +71,4 @@ class RequestOptionsProvider:
         stream_slice: Optional[StreamSlice] = None,
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
-        """
-        Specifies how to populate the body of the request with a JSON payload.
-
-        At the same time only one of the 'request_body_data' and 'request_body_json' functions can be overridden.
-        """
+        return self._decorated.get_request_body_json(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token)
