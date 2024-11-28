@@ -1,5 +1,6 @@
 # Copyright (c) 2024 Airbyte, Inc., all rights reserved.
 
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, MutableMapping, Optional
 
@@ -60,8 +61,7 @@ class SubstreamResumableFullRefreshCursor(Cursor):
         if "states" not in stream_state:
             raise AirbyteTracedException(
                 internal_message=f"Could not sync parse the following state: {stream_state}",
-                message="The state for is format invalid. Validate that the migration steps included a reset and that it was performed "
-                "properly. Otherwise, please contact Airbyte support.",
+                message="The state format is invalid. Validate that the migration steps included a reset and that it was performed properly. Otherwise, please contact Airbyte support.",
                 failure_type=FailureType.config_error,
             )
 
