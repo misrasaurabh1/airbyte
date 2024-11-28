@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import json
 from dataclasses import InitVar, dataclass, field
 from functools import partial
@@ -116,13 +117,10 @@ class SimpleRetriever(Retriever):
         Raise a ValueError if there's a key collision
         Returned merged mapping otherwise
         """
-        # FIXME we should eventually remove the usage of stream_state as part of the interpolation
-        mappings = [
-            paginator_method(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token),
-        ]
+        params = [paginator_method(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token)]
         if not next_page_token or not self.ignore_stream_slicer_parameters_on_paginated_requests:
-            mappings.append(stream_slicer_method(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token))
-        return combine_mappings(mappings)
+            params.append(stream_slicer_method(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token))
+        return combine_mappings(params)
 
     def _request_headers(
         self,
