@@ -170,9 +170,7 @@ class DeclarativeStream(Stream):
         return None
 
     def get_cursor(self) -> Optional[Cursor]:
-        if self.retriever and isinstance(self.retriever, SimpleRetriever):
-            return self.retriever.cursor
-        return None
+        return self.retriever.cursor if isinstance(self.retriever, SimpleRetriever) else None
 
     def _get_checkpoint_reader(
         self,
