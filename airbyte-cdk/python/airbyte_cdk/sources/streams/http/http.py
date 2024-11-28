@@ -282,14 +282,12 @@ class HttpStream(Stream, CheckpointMixin, ABC):
         :return: A user-friendly message that indicates the cause of the error
         """
 
-        # default logic to grab error from common fields
         def _try_get_error(value: Optional[JsonType]) -> Optional[str]:
             if isinstance(value, str):
                 return value
-            elif isinstance(value, list):
-                errors_in_value = [_try_get_error(v) for v in value]
-                return ", ".join(v for v in errors_in_value if v is not None)
-            elif isinstance(value, dict):
+            if isinstance(value, list):
+                return ", ".join(filter(None, map(_try_get_error, value)))
+            if isinstance(value, dict):
                 new_value = (
                     value.get("message")
                     or value.get("messages")
