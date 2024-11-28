@@ -34,6 +34,19 @@ class WaitForDiscoverPolicy(AbstractSchemaValidationPolicy):
         return True
 
 
+def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
+    # Helper function to check if the value is of the expected type or a narrower type
+    type_checks = {
+        "string": lambda v: isinstance(v, str),
+        "number": lambda v: isinstance(v, (int, float)),
+        "integer": lambda v: isinstance(v, int),
+        "boolean": lambda v: isinstance(v, bool),
+        "object": lambda v: isinstance(v, dict),
+        "array": lambda v: isinstance(v, list),
+    }
+    return type_checks.get(expected_type, lambda v: False)(value)
+
+
 DEFAULT_SCHEMA_VALIDATION_POLICIES = {
     ValidationPolicy.emit_record: EmitRecordPolicy(),
     ValidationPolicy.skip_record: SkipRecordPolicy(),
