@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
@@ -26,19 +27,14 @@ class Paginator(ABC, RequestOptionsProvider):
         Reset the pagination's inner state
         """
 
-    @abstractmethod
     def next_page_token(
         self, response: requests.Response, last_page_size: int, last_record: Optional[Record]
     ) -> Optional[Mapping[str, Any]]:
-        """
-        Returns the next_page_token to use to fetch the next page of records.
+        if self._page_count >= self._maximum_number_of_pages:
+            return None
 
-        :param response: the response to process
-        :param last_page_size: the number of records read from the response
-        :param last_record: the last record extracted from the response
-        :return: A mapping {"next_page_token": <token>} for the next page from the input response object. Returning None means there are no more pages to read in this response.
-        """
-        pass
+        self._page_count += 1
+        return self._decorated.next_page_token(response, last_page_size, last_record)
 
     @abstractmethod
     def path(self) -> Optional[str]:
