@@ -195,7 +195,7 @@ class FromFieldEmbedder(Embedder):
         self.config = config
 
     def check(self) -> Optional[str]:
-        return None
+        pass
 
     def embed_documents(self, documents: List[Document]) -> List[Optional[List[float]]]:
         """
