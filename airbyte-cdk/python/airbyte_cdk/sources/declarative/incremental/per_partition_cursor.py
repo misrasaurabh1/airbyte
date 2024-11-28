@@ -237,15 +237,19 @@ class PerPartitionCursor(DeclarativeCursor):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Union[Mapping[str, Any], str]:
         if stream_slice:
-            return self._partition_router.get_request_body_data(  # type: ignore # this always returns a mapping
-                stream_state=stream_state,
-                stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
-                next_page_token=next_page_token,
-            ) | self._cursor_per_partition[self._to_partition_key(stream_slice.partition)].get_request_body_data(
-                stream_state=stream_state,
-                stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
-                next_page_token=next_page_token,
-            )
+            partition_key = self._to_partition_key(stream_slice.partition)
+            return {
+                **self._partition_router.get_request_body_data(
+                    stream_state=stream_state,
+                    stream_slice=StreamSlice(partition=stream_slice.partition, cursor_slice={}),
+                    next_page_token=next_page_token,
+                ),
+                **self._cursor_per_partition[partition_key].get_request_body_data(
+                    stream_state=stream_state,
+                    stream_slice=StreamSlice(partition={}, cursor_slice=stream_slice.cursor_slice),
+                    next_page_token=next_page_token,
+                ),
+            }
         else:
             raise ValueError("A partition needs to be provided in order to get request body data")
 
