@@ -69,8 +69,8 @@ def base64encode(value: str) -> str:
     :param value: value to be encoded in base64
     :return: base64 encoded string
     """
-
-    return base64.b64encode(value.encode("utf-8")).decode()
+    encoded_bytes = base64.b64encode(value.encode())
+    return encoded_bytes.decode("utf-8")
 
 
 def base64decode(value: str) -> str:
