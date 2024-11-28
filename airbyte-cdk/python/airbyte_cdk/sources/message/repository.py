@@ -27,17 +27,20 @@ _SEVERITY_BY_LOG_LEVEL = {
 
 
 def _is_severe_enough(threshold: Level, level: Level) -> bool:
-    if threshold not in _SEVERITY_BY_LOG_LEVEL:
+    threshold_severity = _SEVERITY_BY_LOG_LEVEL.get(threshold)
+    level_severity = _SEVERITY_BY_LOG_LEVEL.get(level)
+
+    if threshold_severity is None:
         _LOGGER.warning(f"Log level {threshold} for threshold is not supported. This is probably a CDK bug. Please contact Airbyte.")
         return True
 
-    if level not in _SEVERITY_BY_LOG_LEVEL:
+    if level_severity is None:
         _LOGGER.warning(
             f"Log level {level} is not supported. This is probably a source bug. Please contact the owner of the source or Airbyte."
         )
         return True
 
-    return _SEVERITY_BY_LOG_LEVEL[threshold] >= _SEVERITY_BY_LOG_LEVEL[level]
+    return threshold_severity >= level_severity
 
 
 class MessageRepository(ABC):
