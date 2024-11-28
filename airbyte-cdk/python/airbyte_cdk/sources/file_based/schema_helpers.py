@@ -169,29 +169,39 @@ def conforms_to_schema(record: Mapping[str, Any], schema: Mapping[str, Any]) -> 
     - For every column in the record, that column's type is equal to or narrower than the same column's
       type in the schema.
     """
-    schema_columns = set(schema.get("properties", {}).keys())
-    record_columns = set(record.keys())
+    schema_properties = schema.get("properties", {})
+    schema_columns = set(schema_properties.keys())
 
-    if not record_columns.issubset(schema_columns):
+    if not set(record.keys()).issubset(schema_columns):
         return False
 
-    for column, definition in schema.get("properties", {}).items():
-        expected_type = definition.get("type")
-        value = record.get(column)
+    def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
+        type_checks = {
+            "boolean": lambda v: isinstance(v, bool),
+            "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+            "number": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+            "string": lambda v: isinstance(v, str),
+            "null": lambda v: v is None,
+            "object": lambda v: isinstance(v, dict),
+            "array": lambda v: isinstance(v, list),
+        }
+        return type_checks.get(expected_type, lambda v: False)(value)
 
-        if value is not None:
-            if isinstance(expected_type, list):
-                return any(is_equal_or_narrower_type(value, e) for e in expected_type)
-            elif expected_type == "object":
-                return isinstance(value, dict)
-            elif expected_type == "array":
-                if not isinstance(value, list):
-                    return False
-                array_type = definition.get("items", {}).get("type")
-                if not all(is_equal_or_narrower_type(v, array_type) for v in value):
-                    return False
-            elif not is_equal_or_narrower_type(value, expected_type):
+    for column, value in record.items():
+        definition = schema_properties.get(column, {})
+        expected_types = definition.get("type")
+
+        if expected_types:
+            if not isinstance(expected_types, list):
+                expected_types = [expected_types]
+
+            if not any(is_equal_or_narrower_type(value, expected_type) for expected_type in expected_types):
                 return False
+
+            if "array" in expected_types:
+                array_type = definition.get("items", {}).get("type")
+                if array_type and not all(is_equal_or_narrower_type(v, array_type) for v in value):
+                    return False
 
     return True
 
