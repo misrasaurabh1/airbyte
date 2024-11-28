@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import json
 from dataclasses import InitVar, dataclass, field
 from functools import partial
@@ -9,7 +10,7 @@ from itertools import islice
 from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
 
 import requests
-from airbyte_cdk.models import AirbyteMessage
+from airbyte_cdk.models import AirbyteMessage as BaseAirbyteMessage, AirbyteMessage
 from airbyte_cdk.sources.declarative.extractors.http_selector import HttpSelector
 from airbyte_cdk.sources.declarative.incremental import ResumableFullRefreshCursor
 from airbyte_cdk.sources.declarative.incremental.declarative_cursor import DeclarativeCursor
@@ -407,12 +408,9 @@ class SimpleRetriever(Retriever):
         As we allow the output of _read_pages to be StreamData, it can be multiple things. Therefore, we need to filter out and normalize
         to data to streamline the rest of the process.
         """
-        if isinstance(stream_data, Record):
-            # Record is not part of `StreamData` but is the most common implementation of `Mapping[str, Any]` which is part of `StreamData`
-            return stream_data
-        elif isinstance(stream_data, (dict, Mapping)):
-            return Record(dict(stream_data), stream_slice)
-        elif isinstance(stream_data, AirbyteMessage) and stream_data.record:
+        if isinstance(stream_data, (Record, dict, Mapping)):
+            return Record(stream_data if isinstance(stream_data, dict) else dict(stream_data), stream_slice)
+        if isinstance(stream_data, BaseAirbyteMessage) and stream_data.record:
             return Record(stream_data.record.data, stream_slice)
         return None
 
@@ -459,6 +457,12 @@ class SimpleRetriever(Retriever):
     def _to_partition_key(to_serialize: Any) -> str:
         # separators have changed in Python 3.4. To avoid being impacted by further change, we explicitly specify our own value
         return json.dumps(to_serialize, indent=None, separators=(",", ":"), sort_keys=True)
+
+    @staticmethod
+    def _resolve_slice(slice_part: Mapping[str, Any], attr: str) -> Mapping[str, Any]:
+        while isinstance(slice_part, StreamSlice):
+            slice_part = getattr(slice_part, attr)
+        return slice_part
 
 
 @dataclass
