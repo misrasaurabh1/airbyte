@@ -138,47 +138,19 @@ class CursorBasedCheckpointReader(CheckpointReader):
         3. When stream has processed all partitions, the iterator will raise a StopIteration exception signaling there are no more
            slices left for extracting more records.
         """
-
-        if self._read_state_from_cursor:
-            if self.current_slice is None:
-                # current_slice is None represents the first time we are iterating over a stream's slices. The first slice to
-                # sync not been assigned yet and must first be read from the iterator
-                next_slice = self.read_and_convert_slice()
-                state_for_slice = self._cursor.select_state(next_slice)
-                if state_for_slice == FULL_REFRESH_COMPLETE_STATE:
-                    # Skip every slice that already has the terminal complete value indicating that a previous attempt
-                    # successfully synced the slice
-                    has_more = True
-                    while has_more:
-                        next_slice = self.read_and_convert_slice()
-                        state_for_slice = self._cursor.select_state(next_slice)
-                        has_more = state_for_slice == FULL_REFRESH_COMPLETE_STATE
-                return StreamSlice(cursor_slice=state_for_slice or {}, partition=next_slice.partition, extra_fields=next_slice.extra_fields)
-            else:
-                state_for_slice = self._cursor.select_state(self.current_slice)
-                if state_for_slice == FULL_REFRESH_COMPLETE_STATE:
-                    # If the current slice is is complete, move to the next slice and skip the next slices that already
-                    # have the terminal complete value indicating that a previous attempt was successfully read.
-                    # Dummy initialization for mypy since we'll iterate at least once to get the next slice
-                    next_candidate_slice = StreamSlice(cursor_slice={}, partition={})
-                    has_more = True
-                    while has_more:
-                        next_candidate_slice = self.read_and_convert_slice()
-                        state_for_slice = self._cursor.select_state(next_candidate_slice)
-                        has_more = state_for_slice == FULL_REFRESH_COMPLETE_STATE
-                    return StreamSlice(
-                        cursor_slice=state_for_slice or {},
-                        partition=next_candidate_slice.partition,
-                        extra_fields=next_candidate_slice.extra_fields,
-                    )
-                # The reader continues to process the current partition if it's state is still in progress
-                return StreamSlice(
-                    cursor_slice=state_for_slice or {}, partition=self.current_slice.partition, extra_fields=self.current_slice.extra_fields
-                )
-        else:
-            # Unlike RFR cursors that iterate dynamically according to how stream state is updated, most cursors operate
-            # on a fixed set of slices determined before reading records. They just iterate to the next slice
+        if not self._read_state_from_cursor:
             return self.read_and_convert_slice()
+
+        if self.current_slice is None:
+            return self._get_next_slice()
+
+        state_for_slice = self._cursor.select_state(self.current_slice)
+        if state_for_slice == FULL_REFRESH_COMPLETE_STATE:
+            return self._get_next_slice()
+
+        return StreamSlice(
+            cursor_slice=state_for_slice or {}, partition=self.current_slice.partition, extra_fields=self.current_slice.extra_fields
+        )
 
     @property
     def current_slice(self) -> Optional[StreamSlice]:
@@ -195,6 +167,17 @@ class CursorBasedCheckpointReader(CheckpointReader):
                 f"{self.current_slice} should be of type StreamSlice. This is likely a bug in the CDK, please contact Airbyte support"
             )
         return next_slice
+
+    def _get_next_slice(self) -> StreamSlice:
+        while True:
+            next_candidate_slice = self.read_and_convert_slice()
+            state_for_slice = self._cursor.select_state(next_candidate_slice)
+            if state_for_slice != FULL_REFRESH_COMPLETE_STATE:
+                return StreamSlice(
+                    cursor_slice=state_for_slice or {},
+                    partition=next_candidate_slice.partition,
+                    extra_fields=next_candidate_slice.extra_fields,
+                )
 
 
 class LegacyCursorBasedCheckpointReader(CursorBasedCheckpointReader):
