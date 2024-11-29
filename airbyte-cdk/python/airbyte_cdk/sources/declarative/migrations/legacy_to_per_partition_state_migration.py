@@ -85,5 +85,6 @@ class LegacyToPerPartitionStateMigration(StateMigration):
         return True
 
     def migrate(self, stream_state: Mapping[str, Any]) -> Mapping[str, Any]:
-        states = [{"partition": {self._partition_key_field: key}, "cursor": value} for key, value in stream_state.items()]
+        partition_key_field = self._partition_key_field
+        states = [{"partition": {partition_key_field: key}, "cursor": value} for key, value in stream_state.items()]
         return {"states": states}
