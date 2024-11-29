@@ -3,7 +3,7 @@
 #
 
 import ast
-from functools import cache
+from functools import lru_cache, cache
 from typing import Any, Mapping, Optional, Tuple, Type
 
 from airbyte_cdk.sources.declarative.interpolation.filters import filters
@@ -116,11 +116,11 @@ class JinjaInterpolation(Interpolation):
 
     def _eval(self, s: Optional[str], context: Mapping[str, Any]) -> Optional[str]:
         try:
-            undeclared = self._find_undeclared_variables(s)
+            undeclared, template = self._parse_template(s)
             undeclared_not_in_context = {var for var in undeclared if var not in context}
             if undeclared_not_in_context:
                 raise ValueError(f"Jinja macro has undeclared variables: {undeclared_not_in_context}. Context: {context}")
-            return self._compile(s).render(context)  # type: ignore # from_string is able to handle None
+            return template.render(context)
         except TypeError:
             # The string is a static value, not a jinja template
             # It can be returned as is
@@ -140,3 +140,13 @@ class JinjaInterpolation(Interpolation):
         We must cache the Jinja Template ourselves because we're using `from_string` instead of a template loader
         """
         return self._environment.from_string(s)
+
+    @lru_cache(maxsize=2048)
+    def _parse_template(self, s: Optional[str]):
+        """
+        Parse and prepare the template, then cache it
+        """
+        ast = self._environment.parse(s)  # type: ignore # parse is able to handle None
+        undeclared = meta.find_undeclared_variables(ast)
+        template = self._environment.from_string(s)  # type: ignore # from_string is able to handle None
+        return undeclared, template
