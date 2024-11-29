@@ -110,9 +110,9 @@ class JinjaInterpolation(Interpolation):
             evaluated = ast.literal_eval(result)  # type: ignore # literal_eval is able to handle None
         except (ValueError, SyntaxError):
             return result
-        if not valid_types or (valid_types and isinstance(evaluated, valid_types)):
-            return evaluated
-        return result
+        if valid_types and not isinstance(evaluated, valid_types):
+            return result
+        return evaluated
 
     def _eval(self, s: Optional[str], context: Mapping[str, Any]) -> Optional[str]:
         try:
