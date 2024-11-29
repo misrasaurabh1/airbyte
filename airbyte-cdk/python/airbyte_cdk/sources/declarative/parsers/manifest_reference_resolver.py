@@ -144,7 +144,7 @@ class ManifestReferenceResolver:
 
     @staticmethod
     def _is_ref_key(key: str) -> bool:
-        return bool(key == REF_TAG)
+        return key == REF_TAG
 
     @staticmethod
     def _read_ref_value(ref: str, manifest_node: Mapping[str, Any]) -> Any:
