@@ -42,10 +42,10 @@ def timestamp(dt: Union[float, str]) -> Union[int, float]:
     Converts a number or a string to a timestamp
 
     If dt is a number, then convert to an int
-    If dt is a string, then parse it using dateutil.parser
+    If dt is a string, then parse it using dateutil.parser (or datetime.fromisoformat for optimization)
 
     Usage:
-    `"{{ timestamp(1658505815.223235) }}"
+    `"{{ timestamp(1658505815.223235) }}"`
 
     :param dt: datetime to convert to timestamp
     :return: unix timestamp
@@ -53,15 +53,22 @@ def timestamp(dt: Union[float, str]) -> Union[int, float]:
     if isinstance(dt, (int, float)):
         return int(dt)
     else:
-        return _str_to_datetime(dt).astimezone(pytz.utc).timestamp()
+        return _str_to_datetime(dt).timestamp()
 
 
 def _str_to_datetime(s: str) -> datetime.datetime:
-    parsed_date = parser.isoparse(s)
-    if not parsed_date.tzinfo:
-        # Assume UTC if the input does not contain a timezone
-        parsed_date = parsed_date.replace(tzinfo=pytz.utc)
-    return parsed_date.astimezone(pytz.utc)
+    try:
+        # Try using the fromisoformat for a speedier conversion for strings in ISO format
+        parsed_date = datetime.datetime.fromisoformat(s)
+        if parsed_date.tzinfo is None:
+            parsed_date = parsed_date.replace(tzinfo=pytz.utc)
+        return parsed_date
+    except ValueError:
+        # Fall back to the parser if fromisoformat fails
+        parsed_date = parser.isoparse(s)
+        if parsed_date.tzinfo is None:
+            parsed_date = parsed_date.replace(tzinfo=pytz.utc)
+        return parsed_date
 
 
 def max(*args: typing.Any) -> typing.Any:
