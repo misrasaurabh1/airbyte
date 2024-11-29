@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import datetime
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
@@ -105,7 +106,9 @@ class DatetimeBasedCursor(DeclarativeCursor):
             self.cursor_datetime_formats = [self.datetime_format]
 
     def get_stream_state(self) -> StreamState:
-        return {self.cursor_field.eval(self.config): self._cursor} if self._cursor else {}  # type: ignore  # cursor_field is converted to an InterpolatedString in __post_init__
+        return (
+            {self.cursor_field.eval(self.config): self._cursor} if self._cursor else {}
+        )  # cursor_field is converted to an InterpolatedString in __post_init__
 
     def set_initial_state(self, stream_state: StreamState) -> None:
         """
@@ -378,3 +381,12 @@ class DatetimeBasedCursor(DeclarativeCursor):
         # Check if the new runtime lookback window is greater than the current config lookback
         if parse_duration(runtime_lookback_window) > config_lookback:
             self._lookback_window = InterpolatedString.create(runtime_lookback_window, parameters={})
+
+    def _optimize_step_cursor_granularity(self, parameters):
+        step = (
+            self._parse_timedelta(InterpolatedString.create(self.step, parameters=parameters).eval(self.config))
+            if self.step
+            else datetime.timedelta.max
+        )
+        cursor_granularity = self._parse_timedelta(self.cursor_granularity)
+        return step, cursor_granularity
