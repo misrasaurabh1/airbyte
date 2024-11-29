@@ -95,12 +95,14 @@ def merge_schemas(schema1: SchemaType, schema2: SchemaType) -> SchemaType:
     - list with list (union)
     and nothing else.
     """
-    for k, t in list(schema1.items()) + list(schema2.items()):
+    for k, t in schema1.items():
         if not isinstance(t, dict) or "type" not in t or not _is_valid_type(t["type"]):
             raise SchemaInferenceError(FileBasedSourceError.UNRECOGNIZED_TYPE, key=k, type=t)
 
-    merged_schema: Dict[str, Any] = deepcopy(schema1)  # type: ignore  # as of 2023-08-08, deepcopy can copy Mapping
+    merged_schema: Dict[str, Any] = {**schema1}
     for k2, t2 in schema2.items():
+        if not isinstance(t2, dict) or "type" not in t2 or not _is_valid_type(t2["type"]):
+            raise SchemaInferenceError(FileBasedSourceError.UNRECOGNIZED_TYPE, key=k2, type=t2)
         t1 = merged_schema.get(k2)
         if t1 is None:
             merged_schema[k2] = t2
@@ -127,7 +129,6 @@ def _choose_wider_type(key: str, t1: Mapping[str, Any], t2: Mapping[str, Any]) -
             key=key,
             detected_types=f"{t1},{t2}",
         )
-    # Schemas can still be merged if a key contains a null value in either t1 or t2, but it is still an object
     elif (t1_type == "object" or t2_type == "object") and t1_type != "null" and t2_type != "null" and t1 != t2:
         raise SchemaInferenceError(
             FileBasedSourceError.SCHEMA_INFERENCE_ERROR,
@@ -136,13 +137,11 @@ def _choose_wider_type(key: str, t1: Mapping[str, Any], t2: Mapping[str, Any]) -
             detected_types=f"{t1},{t2}",
         )
     else:
-        comparable_t1 = get_comparable_type(TYPE_PYTHON_MAPPING[t1_type][0])  # accessing the type_mapping value
-        comparable_t2 = get_comparable_type(TYPE_PYTHON_MAPPING[t2_type][0])  # accessing the type_mapping value
-        if not comparable_t1 and comparable_t2:
+        comparable_t1 = get_comparable_type(TYPE_PYTHON_MAPPING[t1_type][0])
+        comparable_t2 = get_comparable_type(TYPE_PYTHON_MAPPING[t2_type][0])
+        if not (comparable_t1 or comparable_t2):
             raise SchemaInferenceError(FileBasedSourceError.UNRECOGNIZED_TYPE, key=key, detected_types=f"{t1},{t2}")
-        return max(
-            [t1, t2], key=lambda x: ComparableType(get_comparable_type(TYPE_PYTHON_MAPPING[x["type"]][0]))
-        )  # accessing the type_mapping value
+        return max([t1, t2], key=lambda x: ComparableType(get_comparable_type(TYPE_PYTHON_MAPPING[x["type"]][0])))
 
 
 def is_equal_or_narrower_type(value: Any, expected_type: str) -> bool:
