@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import pkgutil
 from typing import Any
 
@@ -43,4 +44,14 @@ class YamlDeclarativeSource(ManifestDeclarativeSource):
         :param connection_definition_str: yaml string to parse
         :return: The ConnectionDefinition parsed from connection_definition_str
         """
-        return yaml.safe_load(connection_definition_str)  # type: ignore # yaml.safe_load doesn't return a type but know it is a Mapping
+        return yaml.load(connection_definition_str, Loader=yaml.CSafeLoader)  # use CSafeLoader if available
+
+    def _read_and_parse_yaml_file(self, path_to_yaml: str) -> ConnectionDefinition:
+        """
+        Reads and parses a yaml file
+        :param path_to_yaml: Path to the yaml file to read and parse
+        :return: The parsed yaml as a ConnectionDefinition
+        """
+        with open(path_to_yaml, "rb") as file:  # open file in binary mode
+            connection_definition_str = file.read()
+        return self._parse(connection_definition_str)
