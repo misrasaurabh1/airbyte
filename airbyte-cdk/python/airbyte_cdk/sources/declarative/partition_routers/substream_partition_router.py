@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 import copy
 import logging
 from dataclasses import InitVar, dataclass
@@ -261,7 +262,7 @@ class SubstreamPartitionRouter(PartitionRouter):
             }
         }
         """
-        return copy.deepcopy(self._parent_state)
+        return self._parent_state
 
     @property
     def logger(self) -> logging.Logger:
