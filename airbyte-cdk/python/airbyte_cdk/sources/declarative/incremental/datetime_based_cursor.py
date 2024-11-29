@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import datetime
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
@@ -360,10 +361,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
         second_cursor_value = second.get(cursor_field)
         if first_cursor_value and second_cursor_value:
             return self.parse_date(first_cursor_value) >= self.parse_date(second_cursor_value)
-        elif first_cursor_value:
-            return True
-        else:
-            return False
+        return bool(first_cursor_value)
 
     def set_runtime_lookback_window(self, lookback_window_in_seconds: int) -> None:
         """
