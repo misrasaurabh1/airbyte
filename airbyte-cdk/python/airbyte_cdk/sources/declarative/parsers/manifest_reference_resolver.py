@@ -105,19 +105,28 @@ class ManifestReferenceResolver:
 
     def _evaluate_node(self, node: Any, manifest: Mapping[str, Any], visited: Set[Any]) -> Any:
         if isinstance(node, dict):
-            evaluated_dict = {k: self._evaluate_node(v, manifest, visited) for k, v in node.items() if not self._is_ref_key(k)}
-            if REF_TAG in node:
+            evaluated_dict = {}
+            ref_node = None
+            for k, v in node.items():
+                if self._is_ref_key(k):
+                    ref_node = v
+                else:
+                    evaluated_dict[k] = self._evaluate_node(v, manifest, visited)
+
+            if ref_node is not None:
                 # The node includes a $ref key, so we splat the referenced value(s) into the evaluated dict
-                evaluated_ref = self._evaluate_node(node[REF_TAG], manifest, visited)
+                evaluated_ref = self._evaluate_node(ref_node, manifest, visited)
                 if not isinstance(evaluated_ref, dict):
                     return evaluated_ref
                 else:
                     # The values defined on the component take precedence over the reference values
-                    return evaluated_ref | evaluated_dict
-            else:
-                return evaluated_dict
+                    evaluated_ref.update(evaluated_dict)
+                    return evaluated_ref
+            return evaluated_dict
+
         elif isinstance(node, list):
             return [self._evaluate_node(v, manifest, visited) for v in node]
+
         elif self._is_ref(node):
             if node in visited:
                 raise CircularReferenceException(node)
@@ -125,6 +134,7 @@ class ManifestReferenceResolver:
             ret = self._evaluate_node(self._lookup_ref_value(node, manifest), manifest, visited)
             visited.remove(node)
             return ret
+
         else:
             return node
 
