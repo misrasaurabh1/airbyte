@@ -2,6 +2,7 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+from __future__ import annotations
 import datetime
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
@@ -331,7 +332,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
     def _is_within_daterange_boundaries(
         self, record: Record, start_datetime_boundary: Union[datetime.datetime, str], end_datetime_boundary: Union[datetime.datetime, str]
     ) -> bool:
-        cursor_field = self.cursor_field.eval(self.config)  # type: ignore  # cursor_field is converted to an InterpolatedString in __post_init__
+        cursor_field = self.cursor_field.eval(self.config)
         record_cursor_value = record.get(cursor_field)
         if not record_cursor_value:
             self._send_log(
@@ -340,9 +341,9 @@ class DatetimeBasedCursor(DeclarativeCursor):
             )
             return False
         if isinstance(start_datetime_boundary, str):
-            start_datetime_boundary = self.parse_date(start_datetime_boundary)
+            start_datetime_boundary = self_parse_date(start_datetime_boundary)
         if isinstance(end_datetime_boundary, str):
-            end_datetime_boundary = self.parse_date(end_datetime_boundary)
+            end_datetime_boundary = self_parse_date(end_datetime_boundary)
         return start_datetime_boundary <= self.parse_date(record_cursor_value) <= end_datetime_boundary
 
     def _send_log(self, level: Level, message: str) -> None:
