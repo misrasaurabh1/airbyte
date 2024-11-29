@@ -5,7 +5,7 @@
 import datetime
 from dataclasses import InitVar, dataclass, field
 from datetime import timedelta
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
 from airbyte_cdk.models import AirbyteLogMessage, AirbyteMessage, Level, Type
 from airbyte_cdk.sources.declarative.datetime.datetime_parser import DatetimeParser
@@ -304,15 +304,17 @@ class DatetimeBasedCursor(DeclarativeCursor):
         return {}
 
     def _get_request_options(self, option_type: RequestOptionType, stream_slice: Optional[StreamSlice]) -> Mapping[str, Any]:
-        options: MutableMapping[str, Any] = {}
         if not stream_slice:
-            return options
+            return {}
+        options = {}
         if self.start_time_option and self.start_time_option.inject_into == option_type:
-            options[self.start_time_option.field_name.eval(config=self.config)] = stream_slice.get(  # type: ignore # field_name is always casted to an interpolated string
+            options[self.start_time_option.field_name.eval(config=self.config)] = stream_slice.get(
                 self._partition_field_start.eval(self.config)
             )
         if self.end_time_option and self.end_time_option.inject_into == option_type:
-            options[self.end_time_option.field_name.eval(config=self.config)] = stream_slice.get(self._partition_field_end.eval(self.config))  # type: ignore # field_name is always casted to an interpolated string
+            options[self.end_time_option.field_name.eval(config=self.config)] = stream_slice.get(
+                self._partition_field_end.eval(self.config)
+            )
         return options
 
     def should_be_synced(self, record: Record) -> bool:
@@ -378,3 +380,11 @@ class DatetimeBasedCursor(DeclarativeCursor):
         # Check if the new runtime lookback window is greater than the current config lookback
         if parse_duration(runtime_lookback_window) > config_lookback:
             self._lookback_window = InterpolatedString.create(runtime_lookback_window, parameters={})
+
+    def _update_datetime_formats(self):
+        if not self._start_datetime.datetime_format:
+            self._start_datetime.datetime_format = self.datetime_format
+        if self._end_datetime and not self._end_datetime.datetime_format:
+            self._end_datetime.datetime_format = self.datetime_format
+        if not self.cursor_datetime_formats:
+            self.cursor_datetime_formats = [self.datetime_format]
