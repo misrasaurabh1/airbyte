@@ -66,9 +66,9 @@ class HttpRequest:
         if isinstance(body, Mapping):
             return body
         elif isinstance(body, bytes):
-            return json.loads(body.decode())  # type: ignore  # assumes return type of Mapping[str, Any]
+            return json.loads(body.decode())
         elif isinstance(body, str):
-            return json.loads(body)  # type: ignore  # assumes return type of Mapping[str, Any]
+            return json.loads(body)
         return None
 
     @staticmethod
@@ -85,3 +85,9 @@ class HttpRequest:
 
     def __repr__(self) -> str:
         return f"HttpRequest(request={self._parsed_url}, headers={self._headers}, body={self._body!r})"
+
+    @staticmethod
+    def _encode_qs(query_params: Union[str, Mapping[str, Union[str, List[str]]]]) -> str:
+        if isinstance(query_params, str):
+            return query_params
+        return urlencode(query_params, doseq=True)
