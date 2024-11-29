@@ -106,8 +106,7 @@ class HttpRequester(Requester):
         self, *, stream_state: Optional[StreamState], stream_slice: Optional[StreamSlice], next_page_token: Optional[Mapping[str, Any]]
     ) -> str:
         kwargs = {"stream_state": stream_state, "stream_slice": stream_slice, "next_page_token": next_page_token}
-        path = str(self._path.eval(self.config, **kwargs))
-        return path.lstrip("/")
+        return str(self._path.eval(self.config, **kwargs)).lstrip("/")
 
     def get_method(self) -> HttpMethod:
         return self._http_method
