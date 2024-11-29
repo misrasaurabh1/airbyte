@@ -251,7 +251,7 @@ class DatetimeBasedCursor(DeclarativeCursor):
             try:
                 return self._parser.parse(date, datetime_format)
             except ValueError:
-                pass
+                continue
         raise ValueError(f"No format in {self.cursor_datetime_formats} matching {date}")
 
     @classmethod
