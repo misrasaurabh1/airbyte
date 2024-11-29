@@ -14,24 +14,14 @@ class JsonErrorMessageParser(ErrorMessageParser):
         if isinstance(value, str):
             return value
         elif isinstance(value, list):
-            errors_in_value = [self._try_get_error(v) for v in value]
-            return ", ".join(v for v in errors_in_value if v is not None)
+            errors_in_value = filter(None, map(self._try_get_error, value))
+            return ", ".join(errors_in_value)
         elif isinstance(value, dict):
-            new_value = (
-                value.get("message")
-                or value.get("messages")
-                or value.get("error")
-                or value.get("errors")
-                or value.get("failures")
-                or value.get("failure")
-                or value.get("detail")
-                or value.get("err")
-                or value.get("error_message")
-                or value.get("msg")
-                or value.get("reason")
-                or value.get("status_message")
-            )
-            return self._try_get_error(new_value)
+            for key in self.keys_to_check:
+                if key in value:
+                    result = self._try_get_error(value[key])
+                    if result:
+                        return result
         return None
 
     def parse_response_error_message(self, response: requests.Response) -> Optional[str]:
@@ -46,3 +36,19 @@ class JsonErrorMessageParser(ErrorMessageParser):
             return self._try_get_error(body)
         except requests.exceptions.JSONDecodeError:
             return None
+
+    def __init__(self):
+        self.keys_to_check = [
+            "message",
+            "messages",
+            "error",
+            "errors",
+            "failures",
+            "failure",
+            "detail",
+            "err",
+            "error_message",
+            "msg",
+            "reason",
+            "status_message",
+        ]
