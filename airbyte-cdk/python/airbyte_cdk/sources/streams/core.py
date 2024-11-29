@@ -435,25 +435,9 @@ class Stream(ABC):
         sync_mode: SyncMode,
         stream_state: MutableMapping[str, Any],
     ) -> CheckpointReader:
-        mappings_or_slices = self.stream_slices(
-            cursor_field=cursor_field,
-            sync_mode=sync_mode,  # todo: change this interface to no longer rely on sync_mode for behavior
-            stream_state=stream_state,
-        )
+        slices_iterable_copy = self.stream_slices(cursor_field=cursor_field, sync_mode=sync_mode, stream_state=stream_state)
+        stream_classification = self._classify_stream(slices_iterable_copy)
 
-        # Because of poor foresight, we wrote the default Stream.stream_slices() method to return [None] which is confusing and
-        # has now normalized this behavior for connector developers. Now some connectors return [None]. This is objectively
-        # misleading and a more ideal interface is [{}] to indicate we still want to iterate over one slice, but with no
-        # specific slice values. None is bad, and now I feel bad that I have to write this hack.
-        if mappings_or_slices == [None]:
-            mappings_or_slices = [{}]
-
-        slices_iterable_copy, iterable_for_detecting_format = itertools.tee(mappings_or_slices, 2)
-        stream_classification = self._classify_stream(mappings_or_slices=iterable_for_detecting_format)
-
-        # Streams that override has_multiple_slices are explicitly indicating that they will iterate over
-        # multiple partitions. Inspecting slices to automatically apply the correct cursor is only needed as
-        # a backup. So if this value was already assigned to True by the stream, we don't need to reassign it
         self.has_multiple_slices = self.has_multiple_slices or stream_classification.has_multiple_slices
 
         cursor = self.get_cursor()
@@ -471,8 +455,6 @@ class Stream(ABC):
                 read_state_from_cursor=checkpoint_mode == CheckpointMode.RESUMABLE_FULL_REFRESH,
             )
         elif checkpoint_mode == CheckpointMode.RESUMABLE_FULL_REFRESH:
-            # Resumable full refresh readers rely on the stream state dynamically being updated during pagination and does
-            # not iterate over a static set of slices.
             return ResumableFullRefreshCheckpointReader(stream_state=stream_state)
         elif checkpoint_mode == CheckpointMode.INCREMENTAL:
             return IncrementalCheckpointReader(stream_slices=slices_iterable_copy, stream_state=stream_state)
@@ -502,38 +484,20 @@ class Stream(ABC):
         Both attributes can eventually be deprecated once stream's define this method deleted once substreams have been implemented and
         legacy connectors all adhere to the StreamSlice object.
         """
-        if not mappings_or_slices:
-            raise ValueError("A stream should always have at least one slice")
         try:
             next_slice = next(mappings_or_slices)
-            if isinstance(next_slice, StreamSlice) and next_slice == StreamSlice(partition={}, cursor_slice={}):
-                is_legacy_format = False
-                slice_has_value = False
-            elif next_slice == {}:
-                is_legacy_format = True
-                slice_has_value = False
-            elif isinstance(next_slice, StreamSlice):
-                is_legacy_format = False
-                slice_has_value = True
-            else:
-                is_legacy_format = True
-                slice_has_value = True
+            is_legacy_format = isinstance(next_slice, dict)
+            slice_has_value = bool(next_slice)
         except StopIteration:
-            # If the stream has no slices, the format ultimately does not matter since no data will get synced. This is technically
-            # a valid case because it is up to the stream to define its slicing behavior
             return StreamClassification(is_legacy_format=False, has_multiple_slices=False)
 
         if slice_has_value:
-            # If the first slice contained a partition value from the result of stream_slices(), this is a substream that might
-            # have multiple parent records to iterate over
-            return StreamClassification(is_legacy_format=is_legacy_format, has_multiple_slices=slice_has_value)
+            return StreamClassification(is_legacy_format=is_legacy_format, has_multiple_slices=True)
 
         try:
-            # If stream_slices() returns multiple slices, this is also a substream that can potentially generate empty slices
             next(mappings_or_slices)
             return StreamClassification(is_legacy_format=is_legacy_format, has_multiple_slices=True)
         except StopIteration:
-            # If the result of stream_slices() only returns a single empty stream slice, then we know this is a regular stream
             return StreamClassification(is_legacy_format=is_legacy_format, has_multiple_slices=False)
 
     def log_stream_sync_configuration(self) -> None:
