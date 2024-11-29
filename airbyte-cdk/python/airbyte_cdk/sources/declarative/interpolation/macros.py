@@ -57,11 +57,12 @@ def timestamp(dt: Union[float, str]) -> Union[int, float]:
 
 
 def _str_to_datetime(s: str) -> datetime.datetime:
-    parsed_date = parser.isoparse(s)
+    # Directly parse to UTC with datetime module
+    parsed_date = datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
     if not parsed_date.tzinfo:
         # Assume UTC if the input does not contain a timezone
-        parsed_date = parsed_date.replace(tzinfo=pytz.utc)
-    return parsed_date.astimezone(pytz.utc)
+        parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
+    return parsed_date.astimezone(datetime.timezone.utc)
 
 
 def max(*args: typing.Any) -> typing.Any:
@@ -114,15 +115,18 @@ def format_datetime(dt: Union[str, datetime.datetime], format: str, input_format
     Usage:
     `"{{ format_datetime(config.start_date, '%Y-%m-%d') }}"`
 
-    CPython Datetime package has known bug with `stfrtime` method: '%s' formatting uses locale timezone
+    CPython Datetime package has known bug with stfrtime method: '%s' formatting uses locale timezone
     https://github.com/python/cpython/issues/77169
     https://github.com/python/cpython/issues/56959
     """
     if isinstance(dt, datetime.datetime):
-        return dt.strftime(format)
-    dt_datetime = datetime.datetime.strptime(dt, input_format) if input_format else _str_to_datetime(dt)
+        dt_datetime = dt
+    else:
+        dt_datetime = datetime.datetime.strptime(dt, input_format) if input_format else _str_to_datetime(dt)
+
     if format == "%s":
         return str(int(dt_datetime.timestamp()))
+
     return dt_datetime.strftime(format)
 
 
