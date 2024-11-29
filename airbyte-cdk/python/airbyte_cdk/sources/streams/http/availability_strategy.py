@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
+from airbyte_cdk.sources import Source
 
 if typing.TYPE_CHECKING:
     from airbyte_cdk.sources import Source
@@ -28,25 +29,22 @@ class HttpAvailabilityStrategy(AvailabilityStrategy):
           for some reason and the str should describe what went wrong and how to
           resolve the unavailability, if possible.
         """
-        reason: Optional[str]
         try:
-            # Some streams need a stream slice to read records (e.g. if they have a SubstreamPartitionRouter)
-            # Streams that don't need a stream slice will return `None` as their first stream slice.
             stream_slice = self.get_first_stream_slice(stream)
-        except StopIteration:
-            # If stream_slices has no `next()` item (Note - this is different from stream_slices returning [None]!)
-            # This can happen when a substream's `stream_slices` method does a `for record in parent_records: yield <something>`
-            # without accounting for the case in which the parent stream is empty.
-            reason = f"Cannot attempt to connect to stream {stream.name} - no stream slices were found, likely because the parent stream is empty."
+        except (StopIteration, AirbyteTracedException) as e:
+            reason = (
+                f"Cannot attempt to connect to stream {stream.name} - no stream slices were found, likely because the parent stream is empty."
+                if isinstance(e, StopIteration)
+                else e.message
+            )
             return False, reason
-        except AirbyteTracedException as error:
-            return False, error.message
 
         try:
             self.get_first_record_for_slice(stream, stream_slice)
             return True, None
         except StopIteration:
             logger.info(f"Successfully connected to stream {stream.name}, but got 0 records.")
-            return True, None
-        except AirbyteTracedException as error:
-            return False, error.message
+        except AirbyteTracedException as e:
+            return False, e.message
+
+        return True, None
