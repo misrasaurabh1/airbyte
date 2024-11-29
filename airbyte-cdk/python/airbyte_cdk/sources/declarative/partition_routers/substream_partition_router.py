@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
+from __future__ import annotations
 import copy
 import logging
 from dataclasses import InitVar, dataclass
@@ -112,10 +113,10 @@ class SubstreamPartitionRouter(PartitionRouter):
         if stream_slice:
             for parent_config in self.parent_stream_configs:
                 if parent_config.request_option and parent_config.request_option.inject_into == option_type:
-                    key = parent_config.partition_field.eval(self.config)  # type: ignore # partition_field is always casted to an interpolated string
+                    key = parent_config.partition_field.eval(self.config)  # type: ignore
                     value = stream_slice.get(key)
                     if value:
-                        params.update({parent_config.request_option.field_name.eval(config=self.config): value})  # type: ignore # field_name is always casted to an interpolated string
+                        params[parent_config.request_option.field_name.eval(config=self.config)] = value  # type: ignore
         return params
 
     def stream_slices(self) -> Iterable[StreamSlice]:
